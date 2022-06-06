@@ -1,8 +1,8 @@
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum CngError {
-    #[error("Private key error")]
-    PrivateKey,
+    #[error("Unsupported private key algorithm")]
+    UnsupportedKeyAlgorithm,
     #[error("Certificate chain error")]
     CertificateChain,
     #[error(transparent)]

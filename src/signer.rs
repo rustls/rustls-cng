@@ -23,20 +23,15 @@ pub struct CngSigningKey {
 
 impl CngSigningKey {
     pub fn from_cert_context(context: &CertContext) -> Result<Self, CngError> {
-        if let Ok(key) = context.acquire_key() {
-            if let Ok(group) = key.algorithm_group() {
-                match group.as_str() {
-                    "RSA" | "ECDSA" | "ECDH" => {
-                        return Ok(Self {
-                            key,
-                            algorithm_group: group,
-                        })
-                    }
-                    _ => {}
-                }
-            }
+        let key = context.acquire_key()?;
+        let group = key.algorithm_group()?;
+        match group.as_str() {
+            "RSA" | "ECDSA" | "ECDH" => Ok(Self {
+                key,
+                algorithm_group: group,
+            }),
+            _ => Err(CngError::UnsupportedKeyAlgorithm),
         }
-        Err(CngError::PrivateKey)
     }
 
     pub fn key(&self) -> &NCryptKey {

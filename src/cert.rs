@@ -70,7 +70,7 @@ impl CertContext {
             if result {
                 Ok(NCryptKey::owned(NCRYPT_HANDLE(handle.0)))
             } else {
-                Err(CngError::PrivateKey)
+                Err(CngError::Windows(windows::core::Error::from_win32()))
             }
         }
     }

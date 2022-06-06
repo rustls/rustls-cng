@@ -21,6 +21,7 @@ pub struct ServerCertResolver(CertStore);
 
 impl ResolvesServerCert for ServerCertResolver {
     fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
+        println!("Client hello server name: {:?}", client_hello.server_name());
         let name = client_hello.server_name()?;
         let contexts = self.0.find_by_subject_str(name).ok()?;
 
