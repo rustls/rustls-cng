@@ -16,6 +16,25 @@ use windows::{
 
 use crate::error::CngError;
 
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub enum AlgorithmGroup {
+    Rsa,
+    Ecdsa,
+    Ecdh,
+    Other(String),
+}
+
+impl AlgorithmGroup {
+    fn from_str(s: &str) -> Self {
+        match s {
+            "RSA" => Self::Rsa,
+            "ECDSA" => Self::Ecdsa,
+            "ECDH" => Self::Ecdh,
+            other => Self::Other(other.to_owned()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum SignaturePadding {
     None,
@@ -109,8 +128,10 @@ impl NCryptKey {
         }
     }
 
-    pub fn algorithm_group(&self) -> Result<String, CngError> {
-        self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)
+    pub fn algorithm_group(&self) -> Result<AlgorithmGroup, CngError> {
+        Ok(AlgorithmGroup::from_str(
+            &self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)?,
+        ))
     }
 
     pub fn algorithm(&self) -> Result<String, CngError> {

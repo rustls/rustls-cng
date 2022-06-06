@@ -5,6 +5,7 @@ use rustls::{
 };
 use sha2::digest::Digest;
 
+use crate::key::AlgorithmGroup;
 use crate::{
     cert::CertContext,
     error::CngError,
@@ -42,19 +43,19 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
 
 pub struct CngSigningKey {
     key: NCryptKey,
-    algorithm_group: String,
+    algorithm_group: AlgorithmGroup,
 }
 
 impl CngSigningKey {
     pub fn from_cert_context(context: &CertContext) -> Result<Self, CngError> {
         let key = context.acquire_key()?;
         let group = key.algorithm_group()?;
-        match group.as_str() {
-            "RSA" | "ECDSA" | "ECDH" => Ok(Self {
+        match group {
+            AlgorithmGroup::Other(_) => Err(CngError::UnsupportedKeyAlgorithm),
+            group => Ok(Self {
                 key,
                 algorithm_group: group,
             }),
-            _ => Err(CngError::UnsupportedKeyAlgorithm),
         }
     }
 
@@ -62,13 +63,13 @@ impl CngSigningKey {
         &self.key
     }
 
-    pub fn algorithm_group(&self) -> &str {
+    pub fn algorithm_group(&self) -> &AlgorithmGroup {
         &self.algorithm_group
     }
 
     pub fn supported_schemes(&self) -> Vec<SignatureScheme> {
-        match self.algorithm_group.as_str() {
-            "RSA" => {
+        match self.algorithm_group {
+            AlgorithmGroup::Rsa => {
                 vec![
                     SignatureScheme::RSA_PKCS1_SHA256,
                     SignatureScheme::RSA_PKCS1_SHA384,
@@ -78,7 +79,7 @@ impl CngSigningKey {
                     SignatureScheme::RSA_PSS_SHA512,
                 ]
             }
-            "ECDSA" | "ECDH" => match self.key.bits() {
+            AlgorithmGroup::Ecdsa | AlgorithmGroup::Ecdh => match self.key.bits() {
                 Ok(256) => vec![SignatureScheme::ECDSA_NISTP256_SHA256],
                 Ok(384) => vec![SignatureScheme::ECDSA_NISTP384_SHA384],
                 Ok(521) => vec![SignatureScheme::ECDSA_NISTP521_SHA512],
@@ -145,7 +146,8 @@ impl Signer for CngSigner {
             _ => return Err(Error::General("Unsupported signature scheme!".to_owned())),
         };
 
-        let signature = self.key
+        let signature = self
+            .key
             .sign(&hash, alg, padding)
             .map_err(|e| Error::General(e.to_string()))?;
 
@@ -179,9 +181,9 @@ impl SigningKey for CngSigningKey {
     }
 
     fn algorithm(&self) -> SignatureAlgorithm {
-        match self.algorithm_group.as_str() {
-            "RSA" => SignatureAlgorithm::RSA,
-            "ECDSA" | "ECDH" => SignatureAlgorithm::ECDSA,
+        match self.algorithm_group {
+            AlgorithmGroup::Rsa => SignatureAlgorithm::RSA,
+            AlgorithmGroup::Ecdsa | AlgorithmGroup::Ecdh => SignatureAlgorithm::ECDSA,
             _ => panic!("Unexpected algorithm group!"),
         }
     }
