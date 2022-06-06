@@ -163,7 +163,6 @@ impl Signer for CngSigner {
 impl SigningKey for CngSigningKey {
     fn choose_scheme(&self, offered: &[SignatureScheme]) -> Option<Box<dyn Signer>> {
         let supported = self.supported_schemes();
-        println!("Offered: {:#?}, Supported: {:#?}", offered, supported);
         for scheme in offered {
             if supported.contains(scheme) {
                 return Some(Box::new(CngSigner {
