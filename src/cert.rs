@@ -87,8 +87,10 @@ impl CertContext {
 
     pub fn as_chain_der(&self) -> Result<Vec<Vec<u8>>, CngError> {
         unsafe {
-            let mut param = CERT_CHAIN_PARA::default();
-            param.cbSize = mem::size_of::<CERT_CHAIN_PARA>() as u32;
+            let param = CERT_CHAIN_PARA {
+                cbSize: mem::size_of::<CERT_CHAIN_PARA>() as u32,
+                RequestedUsage: Default::default(),
+            };
 
             let mut context: *mut CERT_CHAIN_CONTEXT = ptr::null_mut();
 

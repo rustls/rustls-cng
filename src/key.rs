@@ -6,7 +6,8 @@ use windows::{
     Win32::Security::{
         Cryptography::{
             NCryptFreeObject, NCryptGetProperty, NCryptSignHash, BCRYPT_PAD_PKCS1, BCRYPT_PAD_PSS,
-            BCRYPT_PKCS1_PADDING_INFO, BCRYPT_PSS_PADDING_INFO, NCRYPT_ALGORITHM_GROUP_PROPERTY,
+            BCRYPT_PKCS1_PADDING_INFO, BCRYPT_PSS_PADDING_INFO, BCRYPT_SHA256_ALGORITHM,
+            BCRYPT_SHA384_ALGORITHM, BCRYPT_SHA512_ALGORITHM, NCRYPT_ALGORITHM_GROUP_PROPERTY,
             NCRYPT_ALGORITHM_PROPERTY, NCRYPT_FLAGS, NCRYPT_HANDLE, NCRYPT_KEY_HANDLE,
             NCRYPT_LENGTH_PROPERTY, NCRYPT_SILENT_FLAG,
         },
@@ -138,14 +139,15 @@ impl NCryptKey {
         self.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
     }
 
-    pub fn sign(
-        &self,
-        hash: &[u8],
-        hash_alg: &str,
-        padding: SignaturePadding,
-    ) -> Result<Vec<u8>, CngError> {
+    pub fn sign(&self, hash: &[u8], padding: SignaturePadding) -> Result<Vec<u8>, CngError> {
         let mut result = 0;
         unsafe {
+            let hash_alg = match hash.len() {
+                32 => BCRYPT_SHA256_ALGORITHM,
+                48 => BCRYPT_SHA384_ALGORITHM,
+                64 => BCRYPT_SHA512_ALGORITHM,
+                _ => return Err(CngError::InvalidHashLength),
+            };
             let alg_name = U16CString::from_str_unchecked(hash_alg);
             let mut pkcs1 = BCRYPT_PKCS1_PADDING_INFO::default();
             let mut pss = BCRYPT_PSS_PADDING_INFO::default();
@@ -156,12 +158,7 @@ impl NCryptKey {
                 }
                 SignaturePadding::Pss => {
                     pss.pszAlgId = PCWSTR(alg_name.as_ptr());
-                    pss.cbSalt = match hash_alg {
-                        "SHA256" => 32,
-                        "SHA384" => 48,
-                        "SHA512" => 64,
-                        _ => 0,
-                    };
+                    pss.cbSalt = hash.len() as u32;
                     (&pss as *const _ as *const c_void, BCRYPT_PAD_PSS)
                 }
                 SignaturePadding::None => (ptr::null(), NCRYPT_FLAGS::default()),

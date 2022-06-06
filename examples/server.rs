@@ -35,7 +35,7 @@ impl ResolvesServerCert for ServerCertResolver {
         println!("Key alg: {:?}", key.key().algorithm());
 
         let chain = context.as_chain_der().ok()?;
-        let certs = chain.into_iter().map(|v| Certificate(v)).collect();
+        let certs = chain.into_iter().map(Certificate).collect();
         Some(Arc::new(CertifiedKey {
             cert: certs,
             key: Arc::new(key),

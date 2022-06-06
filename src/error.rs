@@ -3,6 +3,8 @@
 pub enum CngError {
     #[error("Unsupported private key algorithm")]
     UnsupportedKeyAlgorithm,
+    #[error("Invalid hash length")]
+    InvalidHashLength,
     #[error("Certificate chain error")]
     CertificateChain,
     #[error(transparent)]
