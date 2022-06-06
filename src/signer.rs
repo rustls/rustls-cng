@@ -16,6 +16,30 @@ fn do_sha(message: &[u8], mut hasher: impl Digest) -> Vec<u8> {
     hasher.finalize().to_vec()
 }
 
+// Convert IEEE-P1363 signature format to ASN.1
+fn p1363_to_der(data: &[u8]) -> Vec<u8> {
+    let mut result = Vec::new();
+
+    let r = &data[0..data.len() / 2];
+    let s = &data[data.len() / 2..];
+
+    result.push(0x30); // SEQUENCE
+    result.push(0); // length, filled later
+
+    // encode each number as unsigned integer
+    for num in [r, s] {
+        let signed = num[0] >= 0x80;
+        result.push(0x02); // INTEGER
+        result.push(num.len() as u8 + signed as u8); // length
+        if signed {
+            result.push(0);
+        }
+        result.extend(num);
+    }
+    result[1] = (result.len() - 2) as u8;
+    result
+}
+
 pub struct CngSigningKey {
     key: NCryptKey,
     algorithm_group: String,
@@ -120,9 +144,18 @@ impl Signer for CngSigner {
             ),
             _ => return Err(Error::General("Unsupported signature scheme!".to_owned())),
         };
-        self.key
+
+        let signature = self.key
             .sign(&hash, alg, padding)
-            .map_err(|e| Error::General(e.to_string()))
+            .map_err(|e| Error::General(e.to_string()))?;
+
+        if padding == SignaturePadding::None {
+            // For ECDSA keys Windows produces IEEE-P1363 signatures.
+            // Convert them to ASN.1
+            Ok(p1363_to_der(&signature))
+        } else {
+            Ok(signature)
+        }
     }
 
     fn scheme(&self) -> SignatureScheme {
