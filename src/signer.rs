@@ -3,7 +3,7 @@ use rustls::{
     sign::{Signer, SigningKey},
     Error, SignatureScheme,
 };
-use sha2::digest::{FixedOutput, Update};
+use sha2::digest::Digest;
 
 use crate::{
     cert::CertContext,
@@ -11,9 +11,9 @@ use crate::{
     key::{NCryptKey, SignaturePadding},
 };
 
-fn do_sha(message: &[u8], mut hasher: impl Update + FixedOutput) -> Vec<u8> {
+fn do_sha(message: &[u8], mut hasher: impl Digest) -> Vec<u8> {
     hasher.update(message);
-    hasher.finalize_fixed().to_vec()
+    hasher.finalize().to_vec()
 }
 
 pub struct CngSigningKey {
