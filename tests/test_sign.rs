@@ -1,5 +1,4 @@
-use rustls::internal::msgs::enums::SignatureAlgorithm;
-use rustls::{sign::SigningKey, SignatureScheme};
+use rustls::{internal::msgs::enums::SignatureAlgorithm, sign::SigningKey, SignatureScheme};
 
 use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
@@ -36,5 +35,5 @@ fn test_sign() {
     assert_eq!(signer.scheme(), SignatureScheme::ECDSA_NISTP384_SHA384);
 
     let signature = signer.sign(MESSAGE.as_bytes()).unwrap();
-    assert_eq!(signature.len(), 96);
+    assert!(signature.len() >= 102);
 }
