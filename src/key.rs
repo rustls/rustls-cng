@@ -1,160 +1,176 @@
-use rustls::{
-    internal::msgs::enums::SignatureAlgorithm,
-    sign::{Signer, SigningKey},
-    Error, SignatureScheme,
+use std::{mem, os::raw::c_void, ptr, sync::Arc};
+
+use widestring::{U16CStr, U16CString};
+use windows::{
+    core::PCWSTR,
+    Win32::Security::{
+        Cryptography::{
+            NCryptFreeObject, NCryptGetProperty, NCryptSignHash, BCRYPT_PAD_PKCS1, BCRYPT_PAD_PSS,
+            BCRYPT_PKCS1_PADDING_INFO, BCRYPT_PSS_PADDING_INFO, NCRYPT_ALGORITHM_GROUP_PROPERTY,
+            NCRYPT_ALGORITHM_PROPERTY, NCRYPT_FLAGS, NCRYPT_HANDLE, NCRYPT_KEY_HANDLE,
+            NCRYPT_LENGTH_PROPERTY, NCRYPT_SILENT_FLAG,
+        },
+        OBJECT_SECURITY_INFORMATION,
+    },
 };
-use sha2::digest::{FixedOutput, Update};
-use wincms::cert::{CertStore, CertStoreType, NCryptKey, SignaturePadding};
 
-fn do_sha(message: &[u8], mut hasher: impl Update + FixedOutput) -> Vec<u8> {
-    hasher.update(message);
-    hasher.finalize_fixed().to_vec()
+use crate::error::CngError;
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum SignaturePadding {
+    None,
+    Pkcs1,
+    Pss,
 }
 
-pub struct CngChain {
-    key: NCryptKey,
-    certificates: Vec<Vec<u8>>,
-    algorithm_group: String,
+#[derive(Debug)]
+enum InnerKey {
+    Owned(NCRYPT_HANDLE),
+    Borrowed(NCRYPT_HANDLE),
 }
 
-impl CngChain {
-    pub fn from_subject_str(subject: &str) -> anyhow::Result<Self> {
-        let store = CertStore::open(CertStoreType::LocalMachine, "my")?;
-        let certs = store.find_cert_by_subject_str(subject)?;
-        for mut cert in certs {
-            if let Ok(key) = cert.acquire_key(true) {
-                if let Ok(group) = key.get_algorithm_group() {
-                    match group.as_str() {
-                        "RSA" | "ECDSA" => {
-                            return Ok(Self {
-                                key,
-                                certificates: cert.as_chain_der()?,
-                                algorithm_group: group,
-                            })
-                        }
-                        _ => {}
-                    }
-                }
-            }
+impl InnerKey {
+    fn inner(&self) -> NCRYPT_HANDLE {
+        match self {
+            Self::Owned(handle) => *handle,
+            Self::Borrowed(handle) => *handle,
         }
-        Err(anyhow::Error::msg("No suitable certificate chain found!"))
     }
+}
 
-    pub fn key(&self) -> &NCryptKey {
-        &self.key
-    }
-
-    pub fn certificates(&self) -> &[Vec<u8>] {
-        self.certificates.as_ref()
-    }
-
-    fn supported_schemes(&self) -> Vec<SignatureScheme> {
-        match self.algorithm_group.as_str() {
-            "RSA" => {
-                vec![
-                    SignatureScheme::RSA_PKCS1_SHA256,
-                    SignatureScheme::RSA_PKCS1_SHA384,
-                    SignatureScheme::RSA_PKCS1_SHA512,
-                    SignatureScheme::RSA_PSS_SHA256,
-                    SignatureScheme::RSA_PSS_SHA384,
-                    SignatureScheme::RSA_PSS_SHA512,
-                ]
-            }
-            "ECDSA" => match self.key.get_bits() {
-                Ok(256) => vec![SignatureScheme::ECDSA_NISTP256_SHA256],
-                Ok(384) => vec![SignatureScheme::ECDSA_NISTP384_SHA384],
-                Ok(521) => vec![SignatureScheme::ECDSA_NISTP521_SHA512],
-                _ => Vec::new(),
+impl Drop for InnerKey {
+    fn drop(&mut self) {
+        match self {
+            Self::Owned(handle) => unsafe {
+                let _ = NCryptFreeObject(*handle);
             },
-            _ => Vec::new(),
+            Self::Borrowed(_) => {}
         }
     }
 }
 
-struct CngSigner {
-    key: NCryptKey,
-    scheme: SignatureScheme,
-}
+#[derive(Clone, Debug)]
+pub struct NCryptKey(Arc<InnerKey>);
 
-impl Signer for CngSigner {
-    fn sign(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
-        let (hash, alg, padding) = match self.scheme {
-            SignatureScheme::RSA_PKCS1_SHA256 => (
-                do_sha(message, sha2::Sha256::default()),
-                "SHA256",
-                SignaturePadding::Pkcs1,
-            ),
-            SignatureScheme::ECDSA_NISTP256_SHA256 => (
-                do_sha(message, sha2::Sha256::default()),
-                "SHA256",
-                SignaturePadding::None,
-            ),
-            SignatureScheme::RSA_PKCS1_SHA384 => (
-                do_sha(message, sha2::Sha384::default()),
-                "SHA384",
-                SignaturePadding::Pkcs1,
-            ),
-            SignatureScheme::ECDSA_NISTP384_SHA384 => (
-                do_sha(message, sha2::Sha384::default()),
-                "SHA384",
-                SignaturePadding::None,
-            ),
-            SignatureScheme::RSA_PKCS1_SHA512 => (
-                do_sha(message, sha2::Sha512::default()),
-                "SHA512",
-                SignaturePadding::Pkcs1,
-            ),
-            SignatureScheme::ECDSA_NISTP521_SHA512 => (
-                do_sha(message, sha2::Sha512::default()),
-                "SHA512",
-                SignaturePadding::None,
-            ),
-            SignatureScheme::RSA_PSS_SHA256 => (
-                do_sha(message, sha2::Sha256::default()),
-                "SHA256",
-                SignaturePadding::Pss,
-            ),
-            SignatureScheme::RSA_PSS_SHA384 => (
-                do_sha(message, sha2::Sha384::default()),
-                "SHA384",
-                SignaturePadding::Pss,
-            ),
-            SignatureScheme::RSA_PSS_SHA512 => (
-                do_sha(message, sha2::Sha512::default()),
-                "SHA512",
-                SignaturePadding::Pss,
-            ),
-            _ => return Err(Error::General("Unsupported signature scheme!".to_owned())),
-        };
-        self.key
-            .sign_hash(&hash, alg, padding)
-            .map_err(|e| Error::General(e.to_string()))
+impl NCryptKey {
+    pub fn owned(handle: NCRYPT_HANDLE) -> Self {
+        NCryptKey(Arc::new(InnerKey::Owned(handle)))
     }
 
-    fn scheme(&self) -> SignatureScheme {
-        self.scheme
+    pub fn borrowed(handle: NCRYPT_HANDLE) -> Self {
+        NCryptKey(Arc::new(InnerKey::Borrowed(handle)))
     }
-}
 
-impl SigningKey for CngChain {
-    fn choose_scheme(&self, offered: &[SignatureScheme]) -> Option<Box<dyn Signer>> {
-        let supported = self.supported_schemes();
-        for scheme in offered {
-            if supported.contains(scheme) {
-                return Some(Box::new(CngSigner {
-                    key: self.key.clone(),
-                    scheme: *scheme,
-                }));
-            }
+    pub fn inner(&self) -> NCRYPT_HANDLE {
+        self.0.inner()
+    }
+
+    fn get_string_property(&self, property: &str) -> Result<String, CngError> {
+        let mut result: u32 = 0;
+        unsafe {
+            NCryptGetProperty(
+                self.inner(),
+                property,
+                ptr::null_mut(),
+                0,
+                &mut result,
+                OBJECT_SECURITY_INFORMATION::default(),
+            )?;
+
+            let mut prop_value = vec![0u8; result as usize];
+
+            NCryptGetProperty(
+                self.inner(),
+                property,
+                prop_value.as_mut_ptr(),
+                prop_value.len() as u32,
+                &mut result,
+                OBJECT_SECURITY_INFORMATION::default(),
+            )?;
+
+            Ok(U16CStr::from_ptr_str(prop_value.as_ptr() as _).to_string_lossy())
         }
-        None
     }
 
-    fn algorithm(&self) -> SignatureAlgorithm {
-        match self.algorithm_group.as_str() {
-            "RSA" => SignatureAlgorithm::RSA,
-            "ECDSA" => SignatureAlgorithm::ECDSA,
-            _ => SignatureAlgorithm::Unknown(0),
+    pub fn bits(&self) -> Result<u32, CngError> {
+        let mut bits: u32 = 0;
+        let mut result: u32 = 0;
+        unsafe {
+            NCryptGetProperty(
+                self.inner(),
+                NCRYPT_LENGTH_PROPERTY,
+                &mut bits as *mut _ as _,
+                mem::size_of::<u32>() as u32,
+                &mut result,
+                OBJECT_SECURITY_INFORMATION::default(),
+            )?;
+
+            Ok(bits)
+        }
+    }
+
+    pub fn algorithm_group(&self) -> Result<String, CngError> {
+        self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)
+    }
+
+    pub fn algorithm(&self) -> Result<String, CngError> {
+        self.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
+    }
+
+    pub fn sign(
+        &self,
+        hash: &[u8],
+        hash_alg: &str,
+        padding: SignaturePadding,
+    ) -> Result<Vec<u8>, CngError> {
+        let mut result = 0;
+        unsafe {
+            let alg_name = U16CString::from_str_unchecked(hash_alg);
+            let mut pkcs1 = BCRYPT_PKCS1_PADDING_INFO::default();
+            let mut pss = BCRYPT_PSS_PADDING_INFO::default();
+            let (info, flag) = match padding {
+                SignaturePadding::Pkcs1 => {
+                    pkcs1.pszAlgId = PCWSTR(alg_name.as_ptr());
+                    (&pkcs1 as *const _ as *const c_void, BCRYPT_PAD_PKCS1)
+                }
+                SignaturePadding::Pss => {
+                    pss.pszAlgId = PCWSTR(alg_name.as_ptr());
+                    pss.cbSalt = match hash_alg {
+                        "SHA256" => 32,
+                        "SHA384" => 48,
+                        "SHA512" => 64,
+                        _ => 0,
+                    };
+                    (&pss as *const _ as *const c_void, BCRYPT_PAD_PSS)
+                }
+                SignaturePadding::None => (ptr::null(), NCRYPT_FLAGS::default()),
+            };
+
+            NCryptSignHash(
+                NCRYPT_KEY_HANDLE(self.inner().0),
+                info,
+                hash.as_ptr(),
+                hash.len() as u32,
+                ptr::null_mut(),
+                0,
+                &mut result,
+                NCRYPT_SILENT_FLAG | flag,
+            )?;
+
+            let mut signature = vec![0u8; result as usize];
+
+            NCryptSignHash(
+                NCRYPT_KEY_HANDLE(self.inner().0),
+                info,
+                hash.as_ptr(),
+                hash.len() as u32,
+                signature.as_mut_ptr(),
+                signature.len() as u32,
+                &mut result,
+                NCRYPT_SILENT_FLAG | flag,
+            )?;
+
+            Ok(signature)
         }
     }
 }
