@@ -97,8 +97,8 @@ struct CngSigner {
     scheme: SignatureScheme,
 }
 
-impl Signer for CngSigner {
-    fn sign(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
+impl CngSigner {
+    fn hash(&self, message: &[u8]) -> Result<(Vec<u8>, SignaturePadding), Error> {
         let (hash, padding) = match self.scheme {
             SignatureScheme::RSA_PKCS1_SHA256 => (
                 do_sha(message, sha2::Sha256::default()),
@@ -138,7 +138,13 @@ impl Signer for CngSigner {
             ),
             _ => return Err(Error::General("Unsupported signature scheme!".to_owned())),
         };
+        Ok((hash, padding))
+    }
+}
 
+impl Signer for CngSigner {
+    fn sign(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
+        let (hash, padding) = self.hash(message)?;
         let signature = self
             .key
             .sign(&hash, padding)
