@@ -19,8 +19,7 @@ fn do_sha(message: &[u8], mut hasher: impl Digest) -> Vec<u8> {
 fn p1363_to_der(data: &[u8]) -> Vec<u8> {
     let mut result = Vec::new();
 
-    let r = &data[0..data.len() / 2];
-    let s = &data[data.len() / 2..];
+    let (r, s) = data.split_at(data.len() / 2);
 
     result.push(0x30); // SEQUENCE
     result.push(0); // length, filled later
