@@ -6,7 +6,6 @@ use rustls::{
 use sha2::digest::Digest;
 
 use crate::{
-    cert::CertContext,
     error::CngError,
     key::{AlgorithmGroup, NCryptKey, SignaturePadding},
 };
@@ -47,8 +46,7 @@ pub struct CngSigningKey {
 }
 
 impl CngSigningKey {
-    pub fn from_cert_context(context: &CertContext) -> Result<Self, CngError> {
-        let key = context.acquire_key()?;
+    pub fn from_key(key: NCryptKey) -> Result<Self, CngError> {
         let group = key.algorithm_group()?;
         let bits = key.bits()?;
         match group {

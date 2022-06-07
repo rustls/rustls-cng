@@ -26,9 +26,8 @@ impl ResolvesServerCert for ServerCertResolver {
         let contexts = self.0.find_by_subject_str(name).ok()?;
 
         let (context, key) = contexts.into_iter().find_map(|ctx| {
-            CngSigningKey::from_cert_context(&ctx)
-                .ok()
-                .map(|key| (ctx, key))
+            let key = ctx.acquire_key().ok()?;
+            CngSigningKey::from_key(key).ok().map(|key| (ctx, key))
         })?;
 
         println!("Key alg group: {:?}", key.key().algorithm_group());
