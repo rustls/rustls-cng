@@ -10,7 +10,7 @@ Supported key/certificate types: **RSA**, **ECDSA/ECDH** (secp256r1, secp384r1, 
 
 ## Usage
 
-The central struct to use in `rustls` is `CngSigningKey` which can be constructed
+The central struct to use in `rustls-cng` is `CngSigningKey` which can be constructed
  from the low-level `NCryptKey` handle. The instance of `CngSigningKey` can be then be
  used in `rustls` in the custom `ResolvesServerCert` implementation.
 
