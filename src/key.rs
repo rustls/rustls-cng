@@ -1,3 +1,5 @@
+//! CNG key wrapper
+
 use std::{mem, os::raw::c_void, ptr, sync::Arc};
 
 use widestring::{U16CStr, U16CString};
@@ -17,6 +19,7 @@ use windows::{
 
 use crate::error::CngError;
 
+/// Algorithm group of the CNG private key
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum AlgorithmGroup {
     Rsa,
@@ -36,6 +39,7 @@ impl AlgorithmGroup {
     }
 }
 
+/// Signature padding. Used with RSA keys.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum SignaturePadding {
     None,
@@ -69,18 +73,22 @@ impl Drop for InnerKey {
     }
 }
 
+/// CNG private key wrapper
 #[derive(Clone, Debug)]
 pub struct NCryptKey(Arc<InnerKey>);
 
 impl NCryptKey {
+    /// Create an owned instance which frees the underlying handle automatically
     pub fn owned(handle: NCRYPT_HANDLE) -> Self {
         NCryptKey(Arc::new(InnerKey::Owned(handle)))
     }
 
+    /// Create a borrowed instance which doesn't free the key handle
     pub fn borrowed(handle: NCRYPT_HANDLE) -> Self {
         NCryptKey(Arc::new(InnerKey::Borrowed(handle)))
     }
 
+    /// Return an inner CNG key handle
     pub fn inner(&self) -> NCRYPT_HANDLE {
         self.0.inner()
     }
@@ -112,6 +120,7 @@ impl NCryptKey {
         }
     }
 
+    /// Return a number of bits in the key material
     pub fn bits(&self) -> Result<u32, CngError> {
         let mut bits: u32 = 0;
         let mut result: u32 = 0;
@@ -129,16 +138,19 @@ impl NCryptKey {
         }
     }
 
+    /// Return algorithm group of the key
     pub fn algorithm_group(&self) -> Result<AlgorithmGroup, CngError> {
         Ok(AlgorithmGroup::from_str(
             &self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)?,
         ))
     }
 
+    /// Return algorithm name of the key
     pub fn algorithm(&self) -> Result<String, CngError> {
         self.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
     }
 
+    /// Sign a given digest with this key. The `sign` slice must be 32, 48 or 64 bytes long.
     pub fn sign(&self, hash: &[u8], padding: SignaturePadding) -> Result<Vec<u8>, CngError> {
         let mut result = 0;
         unsafe {

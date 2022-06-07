@@ -1,3 +1,5 @@
+//! Wrapper struct for Windows CERT_CONTEXT
+
 use std::{mem, ptr, slice, sync::Arc};
 
 use windows::Win32::Security::Cryptography::{
@@ -36,22 +38,27 @@ impl Drop for InnerContext {
     }
 }
 
+/// CertContext wraps CERT_CONTEXT structure for high-level certificate operations
 #[derive(Debug, Clone)]
 pub struct CertContext(Arc<InnerContext>);
 
 impl CertContext {
+    /// Construct CertContext as an owned object which automatically frees the inner handle
     pub fn owned(context: *const CERT_CONTEXT) -> Self {
         Self(Arc::new(InnerContext::Owned(context)))
     }
 
+    /// Construct CertContext as a borrowed object which does not free the inner handle
     pub fn borrowed(context: *const CERT_CONTEXT) -> Self {
         Self(Arc::new(InnerContext::Borrowed(context)))
     }
 
+    /// Return a raw reference to the inner handle
     pub fn as_ptr(&self) -> *const CERT_CONTEXT {
         self.0.inner()
     }
 
+    /// Attempt to silently acquire a CNG private key from this context.
     pub fn acquire_key(&self) -> Result<NCryptKey, CngError> {
         let mut handle = HCRYPTPROV_OR_NCRYPT_KEY_HANDLE::default();
         let mut key_spec = CERT_KEY_SPEC::default();
@@ -75,6 +82,7 @@ impl CertContext {
         }
     }
 
+    /// Return DER-encoded X.509 certificate
     pub fn as_der(&self) -> Vec<u8> {
         unsafe {
             slice::from_raw_parts(
@@ -85,6 +93,7 @@ impl CertContext {
         }
     }
 
+    /// Return DER-encoded X.509 certificate chain
     pub fn as_chain_der(&self) -> Result<Vec<Vec<u8>>, CngError> {
         unsafe {
             let param = CERT_CHAIN_PARA {

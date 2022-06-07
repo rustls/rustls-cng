@@ -1,7 +1,8 @@
 # Windows CNG bridge for rustls
 
-This project allows to use private keys from the Windows certificate store together with `rustls`,
-either as a server keychain or client certificate identity.
+This crate allows to use private keys from the Windows certificate store together
+with [rustls](https://docs.rs/rustls/latest/rustls), either as a server keychain
+or client certificate identity.
 
 Rationale: in many situations it is required to use non-exportable private certificate chains
  from the Windows certificate store. `rustls-cng` can use such chains in the `rustls` context.

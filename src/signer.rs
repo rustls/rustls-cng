@@ -1,3 +1,5 @@
+//! SigningKey implementation
+
 use rustls::{
     internal::msgs::enums::SignatureAlgorithm,
     sign::{Signer, SigningKey},
@@ -38,6 +40,8 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
     result
 }
 
+/// Custom implementation of `rustls` SigningKey trait
+#[derive(Debug)]
 pub struct CngSigningKey {
     key: NCryptKey,
     algorithm_group: AlgorithmGroup,
@@ -45,6 +49,7 @@ pub struct CngSigningKey {
 }
 
 impl CngSigningKey {
+    /// Create instance from the CNG key
     pub fn from_key(key: NCryptKey) -> Result<Self, CngError> {
         let group = key.algorithm_group()?;
         let bits = key.bits()?;
@@ -58,18 +63,22 @@ impl CngSigningKey {
         }
     }
 
+    /// Return a reference to the CNG key
     pub fn key(&self) -> &NCryptKey {
         &self.key
     }
 
+    /// Return algorithm group of the key
     pub fn algorithm_group(&self) -> &AlgorithmGroup {
         &self.algorithm_group
     }
 
+    /// Return number of bits in the key material
     pub fn bits(&self) -> u32 {
         self.bits
     }
 
+    /// Return supported signature schemes
     pub fn supported_schemes(&self) -> &[SignatureScheme] {
         match self.algorithm_group {
             AlgorithmGroup::Rsa => &[

@@ -23,8 +23,11 @@ impl ResolvesServerCert for ServerCertResolver {
     fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
         println!("Client hello server name: {:?}", client_hello.server_name());
         let name = client_hello.server_name()?;
+
+        // look up certificate by subject
         let contexts = self.0.find_by_subject_str(name).ok()?;
 
+        // attempt to acquire a private key and construct CngSigningKey
         let (context, key) = contexts.into_iter().find_map(|ctx| {
             let key = ctx.acquire_key().ok()?;
             CngSigningKey::from_key(key).ok().map(|key| (ctx, key))
@@ -33,8 +36,11 @@ impl ResolvesServerCert for ServerCertResolver {
         println!("Key alg group: {:?}", key.key().algorithm_group());
         println!("Key alg: {:?}", key.key().algorithm());
 
+        // attempt to acquire a full certificate chain
         let chain = context.as_chain_der().ok()?;
         let certs = chain.into_iter().map(Certificate).collect();
+
+        // return CertifiedKey instance
         Some(Arc::new(CertifiedKey {
             cert: certs,
             key: Arc::new(key),
@@ -54,6 +60,7 @@ fn accept(
         let mut connection = ServerConnection::new(config.clone())?;
         let mut tls_stream = Stream::new(&mut connection, &mut stream);
 
+        // perform handshake early to get and dump some protocol information
         if tls_stream.conn.is_handshaking() {
             tls_stream.conn.complete_io(tls_stream.sock)?;
         }
@@ -81,6 +88,8 @@ fn accept(
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = std::env::args().collect::<Vec<_>>();
 
+    // if no arguments supplied use the local machine cert store
+    // otherwise open a pkcs12/pfx file with a given password
     let store = if args.len() < 3 {
         CertStore::open(CertStoreType::LocalMachine, "my")?
     } else {
@@ -97,6 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server = TcpListener::bind(format!("0.0.0.0:{}", PORT))?;
 
+    // to test: openssl s_client -servername HOSTNAME -connect localhost:8000
     accept(server, Arc::new(server_config))?;
 
     Ok(())

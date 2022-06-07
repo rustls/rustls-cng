@@ -1,3 +1,6 @@
+//! Error struct
+
+/// Errors that may be returned in this crate
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum CngError {

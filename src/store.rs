@@ -1,3 +1,5 @@
+//! Windows certificate store wrapper
+
 use std::ptr;
 
 use widestring::U16CString;
@@ -18,6 +20,7 @@ use crate::{cert::CertContext, error::CngError};
 const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE =
     CERT_QUERY_ENCODING_TYPE(PKCS_7_ASN_ENCODING.0 | X509_ASN_ENCODING.0);
 
+/// Certificate store type
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum CertStoreType {
     LocalMachine,
@@ -41,16 +44,20 @@ impl CertStoreType {
     }
 }
 
+/// Windows certificate store wrapper
+#[derive(Debug)]
 pub struct CertStore(HCERTSTORE);
 
 unsafe impl Send for CertStore {}
 unsafe impl Sync for CertStore {}
 
 impl CertStore {
+    /// Return an inner handle to the store
     pub fn inner(&self) -> HCERTSTORE {
         self.0
     }
 
+    /// Open certificate store of the given type and name
     pub fn open(store_type: CertStoreType, store_name: &str) -> Result<CertStore, CngError> {
         unsafe {
             let store_name = U16CString::from_str_unchecked(store_name);
@@ -65,6 +72,7 @@ impl CertStore {
         }
     }
 
+    /// Import certificate store from PKCS12 file
     pub fn from_pkcs12(data: &[u8], password: &str) -> Result<CertStore, CngError> {
         unsafe {
             let blob = CRYPTOAPI_BLOB {
@@ -77,6 +85,7 @@ impl CertStore {
         }
     }
 
+    /// Find list of certificates matching the subject substring
     pub fn find_by_subject_str<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
     where
         S: AsRef<str>,
@@ -84,6 +93,7 @@ impl CertStore {
         self.find_by_str(subject.as_ref(), CERT_FIND_SUBJECT_STR)
     }
 
+    /// Find list of certificates matching the issuer substring
     pub fn find_by_issuer_str<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
     where
         S: AsRef<str>,
