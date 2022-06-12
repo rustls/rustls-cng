@@ -1,13 +1,17 @@
+use std::io::Write;
+use std::net::TcpStream;
 use std::{
     io::Read,
     net::{Shutdown, TcpListener},
+    path::PathBuf,
     sync::Arc,
 };
 
+use clap::Parser;
 use rustls::{
-    server::{ClientHello, ResolvesServerCert},
+    server::{AllowAnyAuthenticatedClient, ClientHello, ResolvesServerCert},
     sign::CertifiedKey,
-    Certificate, ServerConfig, ServerConnection, Stream,
+    Certificate, RootCertStore, ServerConfig, ServerConnection, Stream,
 };
 
 use rustls_cng::{
@@ -16,6 +20,28 @@ use rustls_cng::{
 };
 
 const PORT: u16 = 8000;
+
+#[derive(Parser)]
+#[clap(name = "rustls-server-sample")]
+struct AppParams {
+    #[clap(
+        short = 'c',
+        long = "ca-cert",
+        help = "CA cert name to verify the peer certificate"
+    )]
+    ca_cert: String,
+
+    #[clap(short = 'k', long = "keystore", help = "Use external PFX keystore")]
+    keystore: Option<PathBuf>,
+
+    #[clap(
+        short = 'p',
+        long = "password",
+        help = "Keystore password",
+        default_value = "changeit"
+    )]
+    password: String,
+}
 
 pub struct ServerCertResolver(CertStore);
 
@@ -50,58 +76,68 @@ impl ResolvesServerCert for ServerCertResolver {
     }
 }
 
+fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
+    println!("Accepted incoming connection from {}", stream.peer_addr()?);
+    let mut connection = ServerConnection::new(config.clone())?;
+    let mut tls_stream = Stream::new(&mut connection, &mut stream);
+
+    // perform handshake early to get and dump some protocol information
+    if tls_stream.conn.is_handshaking() {
+        tls_stream.conn.complete_io(tls_stream.sock)?;
+    }
+
+    println!("Protocol version: {:?}", tls_stream.conn.protocol_version());
+    println!(
+        "Cipher suite: {:?}",
+        tls_stream.conn.negotiated_cipher_suite()
+    );
+    println!("SNI host name: {:?}", tls_stream.conn.sni_hostname());
+    println!(
+        "Peer certificates: {:?}",
+        tls_stream.conn.peer_certificates().map(|c| c.len())
+    );
+
+    let mut buf = Vec::new();
+    tls_stream.read_to_end(&mut buf)?;
+    println!("{}", String::from_utf8_lossy(&buf));
+    tls_stream.sock.shutdown(Shutdown::Read)?;
+    tls_stream.write_all(b"pong")?;
+    tls_stream.sock.shutdown(Shutdown::Write)?;
+
+    Ok(())
+}
+
 fn accept(
     server: TcpListener,
     config: Arc<ServerConfig>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     for stream in server.incoming() {
-        let mut stream = stream?;
-        println!("Accepted incoming connection from {}", stream.peer_addr()?);
-        let mut connection = ServerConnection::new(config.clone())?;
-        let mut tls_stream = Stream::new(&mut connection, &mut stream);
-
-        // perform handshake early to get and dump some protocol information
-        if tls_stream.conn.is_handshaking() {
-            tls_stream.conn.complete_io(tls_stream.sock)?;
-        }
-
-        println!("Protocol version: {:?}", tls_stream.conn.protocol_version());
-        println!(
-            "Cipher suite: {:?}",
-            tls_stream.conn.negotiated_cipher_suite()
-        );
-        println!("SNI host name: {:?}", tls_stream.conn.sni_hostname());
-        println!(
-            "Peer certificates: {:?}",
-            tls_stream.conn.peer_certificates()
-        );
-
-        let mut buf = Vec::new();
-        tls_stream.read_to_end(&mut buf)?;
-        println!("{}", String::from_utf8_lossy(&buf));
-
-        tls_stream.sock.shutdown(Shutdown::Read)?;
+        let _ = handle_connection(stream?, config.clone());
     }
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = std::env::args().collect::<Vec<_>>();
+    let params: AppParams = AppParams::parse();
 
-    // if no arguments supplied use the local machine cert store
-    // otherwise open a pkcs12/pfx file with a given password
-    let store = if args.len() < 3 {
-        CertStore::open(CertStoreType::LocalMachine, "my")?
+    let store = if let Some(ref keystore) = params.keystore {
+        let data = std::fs::read(keystore)?;
+        CertStore::from_pkcs12(&data, &params.password)?
     } else {
-        let data = std::fs::read(&args[1])?;
-        CertStore::from_pkcs12(&data, &args[2])?
+        CertStore::open(CertStoreType::LocalMachine, "my")?
     };
+
+    let ca_cert_context = store.find_by_subject_str(&params.ca_cert)?;
+    let ca_cert = ca_cert_context.first().unwrap();
+
+    let mut root_store = RootCertStore::empty();
+    root_store.add(&Certificate(ca_cert.as_der()))?;
 
     let server_config = ServerConfig::builder()
         .with_safe_default_cipher_suites()
         .with_safe_default_kx_groups()
         .with_safe_default_protocol_versions()?
-        .with_no_client_auth()
+        .with_client_cert_verifier(AllowAnyAuthenticatedClient::new(root_store))
         .with_cert_resolver(Arc::new(ServerCertResolver(store)));
 
     let server = TcpListener::bind(format!("0.0.0.0:{}", PORT))?;
