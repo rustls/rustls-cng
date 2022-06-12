@@ -1,8 +1,6 @@
-use std::io::Write;
-use std::net::TcpStream;
 use std::{
-    io::Read,
-    net::{Shutdown, TcpListener},
+    io::{Read, Write},
+    net::{Shutdown, TcpListener, TcpStream},
     path::PathBuf,
     sync::Arc,
 };
@@ -107,17 +105,14 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
     Ok(())
 }
 
-fn accept(
-    server: TcpListener,
-    config: Arc<ServerConfig>,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn accept(server: TcpListener, config: Arc<ServerConfig>) -> anyhow::Result<()> {
     for stream in server.incoming() {
         let _ = handle_connection(stream?, config.clone());
     }
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> anyhow::Result<()> {
     let params: AppParams = AppParams::parse();
 
     let store = if let Some(ref keystore) = params.keystore {
