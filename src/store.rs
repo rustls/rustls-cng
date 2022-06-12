@@ -96,7 +96,7 @@ impl CertStore {
         self.find_by_str(subject.as_ref(), CERT_FIND_SUBJECT_STR)
     }
 
-    /// Find list of certificates matching the exact subject
+    /// Find list of certificates matching the exact subject name
     pub fn find_by_subject_name<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
     where
         S: AsRef<str>,
@@ -112,7 +112,7 @@ impl CertStore {
         self.find_by_str(subject.as_ref(), CERT_FIND_ISSUER_STR)
     }
 
-    /// Find list of certificates matching the exact subject
+    /// Find list of certificates matching the exact issuer name
     pub fn find_by_issuer_name<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
     where
         S: AsRef<str>,
