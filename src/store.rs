@@ -3,6 +3,9 @@
 use std::ptr;
 
 use widestring::U16CString;
+use windows::Win32::Security::Cryptography::{
+    CertStrToNameW, CERT_FIND_ISSUER_NAME, CERT_FIND_SUBJECT_NAME, CERT_X500_NAME_STR,
+};
 use windows::{
     core::PCSTR,
     Win32::Security::Cryptography::{
@@ -93,6 +96,14 @@ impl CertStore {
         self.find_by_str(subject.as_ref(), CERT_FIND_SUBJECT_STR)
     }
 
+    /// Find list of certificates matching the exact subject
+    pub fn find_by_subject_name<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
+    where
+        S: AsRef<str>,
+    {
+        self.find_by_name(subject.as_ref(), CERT_FIND_SUBJECT_NAME)
+    }
+
     /// Find list of certificates matching the issuer substring
     pub fn find_by_issuer_str<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
     where
@@ -101,13 +112,21 @@ impl CertStore {
         self.find_by_str(subject.as_ref(), CERT_FIND_ISSUER_STR)
     }
 
+    /// Find list of certificates matching the exact subject
+    pub fn find_by_issuer_name<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
+    where
+        S: AsRef<str>,
+    {
+        self.find_by_name(subject.as_ref(), CERT_FIND_ISSUER_NAME)
+    }
+
     fn find_by_str(
         &self,
-        subject: &str,
+        pattern: &str,
         flags: CERT_FIND_FLAGS,
     ) -> Result<Vec<CertContext>, CngError> {
         let mut certs = Vec::new();
-        let subject = unsafe { U16CString::from_str_unchecked(subject) };
+        let u16pattern = unsafe { U16CString::from_str_unchecked(pattern) };
 
         let mut cert = ptr::null();
 
@@ -118,7 +137,7 @@ impl CertStore {
                     MY_ENCODING_TYPE.0,
                     0,
                     flags,
-                    subject.as_ptr() as _,
+                    u16pattern.as_ptr() as _,
                     cert,
                 )
             };
@@ -131,6 +150,72 @@ impl CertStore {
             }
         }
         Ok(certs)
+    }
+
+    fn find_by_name(
+        &self,
+        field: &str,
+        flags: CERT_FIND_FLAGS,
+    ) -> Result<Vec<CertContext>, CngError> {
+        let mut certs = Vec::new();
+        let mut name_size = 0;
+
+        unsafe {
+            if !CertStrToNameW(
+                MY_ENCODING_TYPE.0,
+                field,
+                CERT_X500_NAME_STR,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                &mut name_size,
+                ptr::null_mut(),
+            )
+            .as_bool()
+            {
+                return Err(CngError::Windows(windows::core::Error::from_win32()));
+            }
+
+            let mut x509name = vec![0u8; name_size as usize];
+            if !CertStrToNameW(
+                MY_ENCODING_TYPE.0,
+                field,
+                CERT_X500_NAME_STR,
+                ptr::null_mut(),
+                x509name.as_mut_ptr() as _,
+                &mut name_size,
+                ptr::null_mut(),
+            )
+            .as_bool()
+            {
+                return Err(CngError::Windows(windows::core::Error::from_win32()));
+            }
+
+            let name_blob = CRYPTOAPI_BLOB {
+                cbData: x509name.len() as _,
+                pbData: x509name.as_mut_ptr() as _,
+            };
+
+            let mut cert = ptr::null();
+
+            loop {
+                cert = CertFindCertificateInStore(
+                    self.0,
+                    MY_ENCODING_TYPE.0,
+                    0,
+                    flags,
+                    &name_blob as *const _ as _,
+                    cert,
+                );
+                if cert.is_null() {
+                    break;
+                } else {
+                    // increase refcount because it will be released by next call to CertFindCertificateInStore
+                    let cert = CertDuplicateCertificateContext(cert);
+                    certs.push(CertContext::owned(cert))
+                }
+            }
+            Ok(certs)
+        }
     }
 }
 

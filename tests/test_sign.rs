@@ -11,7 +11,7 @@ fn test_sign() {
     let store = CertStore::from_pkcs12(PFX, PASSWORD).expect("Cannot open cert store");
 
     let context = store
-        .find_by_subject_str("rustls-ec")
+        .find_by_subject_str("rustls")
         .expect("No signer certificate")
         .into_iter()
         .next()
