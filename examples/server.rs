@@ -23,16 +23,23 @@ const PORT: u16 = 8000;
 #[clap(name = "rustls-server-sample")]
 struct AppParams {
     #[clap(
+        action,
         short = 'c',
         long = "ca-cert",
         help = "CA cert name to verify the peer certificate"
     )]
     ca_cert: String,
 
-    #[clap(short = 'k', long = "keystore", help = "Use external PFX keystore")]
+    #[clap(
+        action,
+        short = 'k',
+        long = "keystore",
+        help = "Use external PFX keystore"
+    )]
     keystore: Option<PathBuf>,
 
     #[clap(
+        action,
         short = 'p',
         long = "password",
         help = "Keystore password",

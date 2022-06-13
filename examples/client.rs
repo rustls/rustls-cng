@@ -65,16 +65,23 @@ impl ResolvesClientCert for ClientCertResolver {
 #[clap(name = "rustls-client-sample")]
 struct AppParams {
     #[clap(
+        action,
         short = 'c',
         long = "ca-cert",
         help = "CA cert name to verify the peer certificate"
     )]
     ca_cert: String,
 
-    #[clap(short = 'k', long = "keystore", help = "Use external PFX keystore")]
+    #[clap(
+        action,
+        short = 'k',
+        long = "keystore",
+        help = "Use external PFX keystore"
+    )]
     keystore: Option<PathBuf>,
 
     #[clap(
+        action,
         short = 'p',
         long = "password",
         help = "Keystore password",
@@ -83,6 +90,7 @@ struct AppParams {
     password: String,
 
     #[clap(
+        action,
         short = 's',
         long = "server-name",
         help = "Server name for TLS SNI extension"
@@ -90,13 +98,14 @@ struct AppParams {
     server_name: String,
 
     #[clap(
+        action,
         short = 'l',
         long = "client-cert",
         help = "Client cert name for client auth"
     )]
     client_cert: String,
 
-    #[clap(help = "Server address")]
+    #[clap(action, help = "Server address")]
     server_address: String,
 }
 
