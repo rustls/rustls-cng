@@ -1,8 +1,7 @@
 # Windows CNG bridge for rustls
 
-This crate allows to use private keys from the Windows certificate store together
-with [rustls](https://docs.rs/rustls/latest/rustls), either as a server keychain
-or client certificate identity.
+This crate allows to use the Windows CNG private keys together with [rustls](https://docs.rs/rustls/latest/rustls)
+ for both client and server side of the TLS channel.
 
 Rationale: in many situations it is required to use non-exportable private certificate chains
  from the Windows certificate store. `rustls-cng` can use such chains in the `rustls` context.
@@ -13,9 +12,9 @@ Supported key/certificate types: **RSA**, **ECDSA/ECDH** (secp256r1, secp384r1, 
 
 The central struct to use in `rustls-cng` is `CngSigningKey` which can be constructed
  from the low-level `NCryptKey` handle. The instance of `CngSigningKey` can be then be
- used in `rustls` in the custom `ResolvesServerCert` implementation.
+ used in `rustls` in the custom `ResolvesServerCert` or `ResolvesClientCert` implementation.
 
-See the `examples/server.rs` for an example how to use it.
+See the `examples` directory for usage examples.
 
 ## License
 
