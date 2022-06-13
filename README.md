@@ -8,6 +8,10 @@ Rationale: in many situations it is required to use non-exportable private certi
 
 Supported key/certificate types: **RSA**, **ECDSA/ECDH** (secp256r1, secp384r1, secp521r1 curves).
 
+## Documentation
+
+Documentation is available [here](https://ancwrd1.github.io/rustls-cng/doc/rustls_cng).
+
 ## Usage
 
 The central struct to use in `rustls-cng` is `CngSigningKey` which can be constructed
