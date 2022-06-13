@@ -10,6 +10,9 @@ readme = "README.md"
 keywords = ["cng", "tls", "rustls", "windows"]
 edition = "2021"
 
+[package.metadata.docs.rs]
+default-target = "x86_64-pc-windows-gnu"
+
 [dependencies]
 rustls = "0.20"
 sha2 = "0.10"
