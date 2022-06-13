@@ -194,3 +194,26 @@ impl SigningKey for CngSigningKey {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_p1363_to_asn1() {
+        let p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
+        let asn1 = super::p1363_to_der(&p1363);
+        assert_eq!(
+            asn1,
+            [0x30, 0x0c, 0x02, 0x04, 1, 2, 3, 4, 0x02, 0x04, 5, 6, 7, 8]
+        )
+    }
+
+    #[test]
+    fn test_p1363_to_asn1_signed() {
+        let p1363 = [1, 2, 3, 4, 0x85, 6, 7, 8];
+        let asn1 = super::p1363_to_der(&p1363);
+        assert_eq!(
+            asn1,
+            [0x30, 0x0d, 0x02, 0x04, 1, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8]
+        )
+    }
+}
