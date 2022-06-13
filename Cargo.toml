@@ -5,13 +5,13 @@ authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]
 description = "Windows CNG API bridge for rustls"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/ancwrd1/rustls-cng"
-documentation = "https://docs.rs/rustls-cng"
+documentation = "https://ancwrd1.github.io/rustls-cng/doc/rustls_cng"
 readme = "README.md"
 keywords = ["cng", "tls", "rustls", "windows"]
 edition = "2021"
 
 [package.metadata.docs.rs]
-default-target = "x86_64-pc-windows-msvc"
+targets = ["x86_64-pc-windows-gnu"]
 
 [dependencies]
 rustls = "0.20"
