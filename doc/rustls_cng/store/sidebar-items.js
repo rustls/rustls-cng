@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CertStoreType","Certificate store type"]],"struct":[["CertStore","Windows certificate store wrapper"]]});
