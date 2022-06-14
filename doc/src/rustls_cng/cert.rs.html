@@ -199,7 +199,7 @@
     }
 
     <span class="doccomment">/// Return a raw reference to the inner handle</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_ptr</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">*const</span> <span class="ident">CERT_CONTEXT</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">inner</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">*const</span> <span class="ident">CERT_CONTEXT</span> {
         <span class="self">self</span>.<span class="number">0</span>.<span class="ident">inner</span>()
     }
 
@@ -211,7 +211,7 @@
             <span class="ident">CRYPT_ACQUIRE_FLAGS</span>(<span class="ident">CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG</span>) <span class="op">|</span> <span class="ident">CRYPT_ACQUIRE_SILENT_FLAG</span>;
         <span class="kw">unsafe</span> {
             <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">CryptAcquireCertificatePrivateKey</span>(
-                <span class="self">self</span>.<span class="ident">as_ptr</span>(),
+                <span class="self">self</span>.<span class="ident">inner</span>(),
                 <span class="ident">flags</span>,
                 <span class="ident">ptr::null_mut</span>(),
                 <span class="kw-2">&amp;mut</span> <span class="ident">handle</span>,
@@ -228,11 +228,11 @@
     }
 
     <span class="doccomment">/// Return DER-encoded X.509 certificate</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_der</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">as_der</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
         <span class="kw">unsafe</span> {
             <span class="ident">slice::from_raw_parts</span>(
-                (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">as_ptr</span>()).<span class="ident">pbCertEncoded</span>,
-                (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">as_ptr</span>()).<span class="ident">cbCertEncoded</span> <span class="kw">as</span> <span class="ident">usize</span>,
+                (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">inner</span>()).<span class="ident">pbCertEncoded</span>,
+                (<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">inner</span>()).<span class="ident">cbCertEncoded</span> <span class="kw">as</span> <span class="ident">usize</span>,
             )
             .<span class="ident">into</span>()
         }
@@ -270,7 +270,7 @@
                     );
                     <span class="kw">for</span> <span class="ident">element</span> <span class="kw">in</span> <span class="ident">elements</span> {
                         <span class="kw">let</span> <span class="ident">context</span> <span class="op">=</span> (<span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">element</span>).<span class="ident">pCertContext</span>;
-                        <span class="ident">chain</span>.<span class="ident">push</span>(<span class="ident"><span class="self">Self</span>::borrowed</span>(<span class="ident">context</span>).<span class="ident">as_der</span>());
+                        <span class="ident">chain</span>.<span class="ident">push</span>(<span class="ident"><span class="self">Self</span>::borrowed</span>(<span class="ident">context</span>).<span class="ident">as_der</span>().<span class="ident">to_vec</span>());
                     }
                 }
 
