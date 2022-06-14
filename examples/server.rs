@@ -133,7 +133,7 @@ fn main() -> anyhow::Result<()> {
     let ca_cert = ca_cert_context.first().unwrap();
 
     let mut root_store = RootCertStore::empty();
-    root_store.add(&Certificate(ca_cert.as_der()))?;
+    root_store.add(&Certificate(ca_cert.as_der().to_vec()))?;
 
     let server_config = ServerConfig::builder()
         .with_safe_default_cipher_suites()

@@ -54,7 +54,7 @@ impl CertContext {
     }
 
     /// Return a raw reference to the inner handle
-    pub fn as_ptr(&self) -> *const CERT_CONTEXT {
+    pub fn inner(&self) -> *const CERT_CONTEXT {
         self.0.inner()
     }
 
@@ -66,7 +66,7 @@ impl CertContext {
             CRYPT_ACQUIRE_FLAGS(CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG) | CRYPT_ACQUIRE_SILENT_FLAG;
         unsafe {
             let result = CryptAcquireCertificatePrivateKey(
-                self.as_ptr(),
+                self.inner(),
                 flags,
                 ptr::null_mut(),
                 &mut handle,
@@ -83,11 +83,11 @@ impl CertContext {
     }
 
     /// Return DER-encoded X.509 certificate
-    pub fn as_der(&self) -> Vec<u8> {
+    pub fn as_der(&self) -> &[u8] {
         unsafe {
             slice::from_raw_parts(
-                (*self.as_ptr()).pbCertEncoded,
-                (*self.as_ptr()).cbCertEncoded as usize,
+                (*self.inner()).pbCertEncoded,
+                (*self.inner()).cbCertEncoded as usize,
             )
             .into()
         }
@@ -125,7 +125,7 @@ impl CertContext {
                     );
                     for element in elements {
                         let context = (**element).pCertContext;
-                        chain.push(Self::borrowed(context).as_der());
+                        chain.push(Self::borrowed(context).as_der().to_vec());
                     }
                 }
 
