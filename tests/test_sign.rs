@@ -30,7 +30,7 @@ fn test_sign() {
     ];
 
     let key = context.acquire_key().unwrap();
-    let signing_key = CngSigningKey::from_key(key).unwrap();
+    let signing_key = CngSigningKey::new(key).unwrap();
     assert_eq!(signing_key.algorithm(), SignatureAlgorithm::ECDSA);
     let signer = signing_key.choose_scheme(&offered).unwrap();
     assert_eq!(signer.scheme(), SignatureScheme::ECDSA_NISTP384_SHA384);

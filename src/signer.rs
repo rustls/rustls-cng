@@ -50,7 +50,7 @@ pub struct CngSigningKey {
 
 impl CngSigningKey {
     /// Create instance from the CNG key
-    pub fn from_key(key: NCryptKey) -> Result<Self, CngError> {
+    pub fn new(key: NCryptKey) -> Result<Self, CngError> {
         let group = key.algorithm_group()?;
         let bits = key.bits()?;
         match group {

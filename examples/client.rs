@@ -26,7 +26,7 @@ fn get_chain(store: &CertStore, name: &str) -> anyhow::Result<(Vec<Certificate>,
         .first()
         .ok_or_else(|| anyhow::Error::msg("No client cert"))?;
     let key = context.acquire_key()?;
-    let signing_key = CngSigningKey::from_key(key)?;
+    let signing_key = CngSigningKey::new(key)?;
     let chain = context
         .as_chain_der()?
         .into_iter()

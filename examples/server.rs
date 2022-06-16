@@ -61,7 +61,7 @@ impl ResolvesServerCert for ServerCertResolver {
         // attempt to acquire a private key and construct CngSigningKey
         let (context, key) = contexts.into_iter().find_map(|ctx| {
             let key = ctx.acquire_key().ok()?;
-            CngSigningKey::from_key(key).ok().map(|key| (ctx, key))
+            CngSigningKey::new(key).ok().map(|key| (ctx, key))
         })?;
 
         println!("Key alg group: {:?}", key.key().algorithm_group());
