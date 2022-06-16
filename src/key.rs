@@ -49,12 +49,12 @@ pub enum SignaturePadding {
 
 #[derive(Debug)]
 enum InnerKey {
-    Owned(NCRYPT_HANDLE),
-    Borrowed(NCRYPT_HANDLE),
+    Owned(NCRYPT_KEY_HANDLE),
+    Borrowed(NCRYPT_KEY_HANDLE),
 }
 
 impl InnerKey {
-    fn inner(&self) -> NCRYPT_HANDLE {
+    fn inner(&self) -> NCRYPT_KEY_HANDLE {
         match self {
             Self::Owned(handle) => *handle,
             Self::Borrowed(handle) => *handle,
@@ -66,7 +66,7 @@ impl Drop for InnerKey {
     fn drop(&mut self) {
         match self {
             Self::Owned(handle) => unsafe {
-                let _ = NCryptFreeObject(*handle);
+                let _ = NCryptFreeObject(NCRYPT_HANDLE(handle.0));
             },
             Self::Borrowed(_) => {}
         }
@@ -79,25 +79,30 @@ pub struct NCryptKey(Arc<InnerKey>);
 
 impl NCryptKey {
     /// Create an owned instance which frees the underlying handle automatically
-    pub fn owned(handle: NCRYPT_HANDLE) -> Self {
+    pub fn owned(handle: NCRYPT_KEY_HANDLE) -> Self {
         NCryptKey(Arc::new(InnerKey::Owned(handle)))
     }
 
     /// Create a borrowed instance which doesn't free the key handle
-    pub fn borrowed(handle: NCRYPT_HANDLE) -> Self {
+    pub fn borrowed(handle: NCRYPT_KEY_HANDLE) -> Self {
         NCryptKey(Arc::new(InnerKey::Borrowed(handle)))
     }
 
     /// Return an inner CNG key handle
-    pub fn inner(&self) -> NCRYPT_HANDLE {
+    pub fn inner(&self) -> NCRYPT_KEY_HANDLE {
         self.0.inner()
+    }
+
+    /// Return NCRYPT_HANDLE
+    pub fn as_ncrypt_handle(&self) -> NCRYPT_HANDLE {
+        NCRYPT_HANDLE(self.0.inner().0)
     }
 
     fn get_string_property(&self, property: &str) -> Result<String, CngError> {
         let mut result: u32 = 0;
         unsafe {
             NCryptGetProperty(
-                self.inner(),
+                self.as_ncrypt_handle(),
                 property,
                 ptr::null_mut(),
                 0,
@@ -108,7 +113,7 @@ impl NCryptKey {
             let mut prop_value = vec![0u8; result as usize];
 
             NCryptGetProperty(
-                self.inner(),
+                self.as_ncrypt_handle(),
                 property,
                 prop_value.as_mut_ptr(),
                 prop_value.len() as u32,
@@ -126,7 +131,7 @@ impl NCryptKey {
         let mut result: u32 = 0;
         unsafe {
             NCryptGetProperty(
-                self.inner(),
+                self.as_ncrypt_handle(),
                 NCRYPT_LENGTH_PROPERTY,
                 &mut bits as *mut _ as _,
                 mem::size_of::<u32>() as u32,

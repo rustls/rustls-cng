@@ -4,19 +4,18 @@ use std::os::raw::c_void;
 use std::ptr;
 
 use widestring::U16CString;
-use windows::Win32::Security::Cryptography::{
-    CertStrToNameW, CERT_CONTEXT, CERT_FIND_HASH, CERT_FIND_ISSUER_NAME, CERT_FIND_SUBJECT_NAME,
-    CERT_X500_NAME_STR,
-};
 use windows::{
     core::PCSTR,
     Win32::Security::Cryptography::{
         CertCloseStore, CertDuplicateCertificateContext, CertFindCertificateInStore, CertOpenStore,
-        PFXImportCertStore, CERT_FIND_FLAGS, CERT_FIND_ISSUER_STR, CERT_FIND_SUBJECT_STR,
+        CertStrToNameW, PFXImportCertStore, CERT_CONTEXT, CERT_FIND_FLAGS, CERT_FIND_HASH,
+        CERT_FIND_ISSUER_NAME, CERT_FIND_ISSUER_STR, CERT_FIND_SUBJECT_NAME, CERT_FIND_SUBJECT_STR,
         CERT_OPEN_STORE_FLAGS, CERT_QUERY_ENCODING_TYPE, CERT_STORE_OPEN_EXISTING_FLAG,
         CERT_SYSTEM_STORE_CURRENT_SERVICE_ID, CERT_SYSTEM_STORE_CURRENT_USER_ID,
-        CERT_SYSTEM_STORE_LOCAL_MACHINE_ID, CERT_SYSTEM_STORE_LOCATION_SHIFT, CRYPTOAPI_BLOB,
-        CRYPT_KEY_FLAGS, HCERTSTORE, HCRYPTPROV_LEGACY, PKCS_7_ASN_ENCODING, X509_ASN_ENCODING,
+        CERT_SYSTEM_STORE_LOCAL_MACHINE_ID, CERT_SYSTEM_STORE_LOCATION_SHIFT, CERT_X500_NAME_STR,
+        CRYPTOAPI_BLOB, CRYPT_EXPORTABLE, HCERTSTORE, HCRYPTPROV_LEGACY,
+        PKCS12_INCLUDE_EXTENDED_PROPERTIES, PKCS12_PREFER_CNG_KSP, PKCS_7_ASN_ENCODING,
+        X509_ASN_ENCODING,
     },
 };
 
@@ -85,7 +84,11 @@ impl CertStore {
                 pbData: data.as_ptr() as _,
             };
 
-            let store = PFXImportCertStore(&blob, password, CRYPT_KEY_FLAGS::default())?;
+            let store = PFXImportCertStore(
+                &blob,
+                password,
+                CRYPT_EXPORTABLE | PKCS12_INCLUDE_EXTENDED_PROPERTIES | PKCS12_PREFER_CNG_KSP,
+            )?;
             Ok(CertStore(store))
         }
     }

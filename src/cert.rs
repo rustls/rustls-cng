@@ -7,7 +7,7 @@ use windows::Win32::Security::Cryptography::{
     CryptAcquireCertificatePrivateKey, CERT_CHAIN_CONTEXT, CERT_CHAIN_PARA, CERT_CONTEXT,
     CERT_KEY_SPEC, CRYPT_ACQUIRE_FLAGS, CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG,
     CRYPT_ACQUIRE_SILENT_FLAG, HCERTCHAINENGINE, HCERTSTORE, HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
-    NCRYPT_HANDLE,
+    NCRYPT_KEY_HANDLE,
 };
 
 use crate::{error::CngError, key::NCryptKey};
@@ -75,7 +75,7 @@ impl CertContext {
             )
             .as_bool();
             if result {
-                Ok(NCryptKey::owned(NCRYPT_HANDLE(handle.0)))
+                Ok(NCryptKey::owned(NCRYPT_KEY_HANDLE(handle.0)))
             } else {
                 Err(CngError::Windows(windows::core::Error::from_win32()))
             }
