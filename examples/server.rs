@@ -114,7 +114,12 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
 
 fn accept(server: TcpListener, config: Arc<ServerConfig>) -> anyhow::Result<()> {
     for stream in server.incoming() {
-        let _ = handle_connection(stream?, config.clone());
+        if let Ok(stream) = stream {
+            let config = config.clone();
+            std::thread::spawn(|| {
+                let _ = handle_connection(stream, config);
+            });
+        }
     }
     Ok(())
 }
