@@ -16,7 +16,7 @@ targets = ["x86_64-pc-windows-gnu"]
 [dependencies]
 rustls = "0.20"
 sha2 = "0.10"
-windows = { version = "0.37", features = [
+windows = { version = "0.38", features = [
     "alloc", "Win32_Foundation", "Win32_Security_Cryptography"] }
 widestring = "1"
 thiserror = "1"
