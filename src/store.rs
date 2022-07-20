@@ -5,7 +5,7 @@ use std::ptr;
 
 use widestring::U16CString;
 use windows::{
-    core::PCSTR,
+    core::{PCSTR, PCWSTR},
     Win32::Security::Cryptography::{
         CertCloseStore, CertDuplicateCertificateContext, CertFindCertificateInStore, CertOpenStore,
         CertStrToNameW, PFXImportCertStore, CERT_CONTEXT, CERT_FIND_FLAGS, CERT_FIND_HASH,
@@ -84,9 +84,10 @@ impl CertStore {
                 pbData: data.as_ptr() as _,
             };
 
+            let password = U16CString::from_str_unchecked(password);
             let store = PFXImportCertStore(
                 &blob,
-                password,
+                PCWSTR(password.as_ptr()),
                 CRYPT_EXPORTABLE | PKCS12_INCLUDE_EXTENDED_PROPERTIES | PKCS12_PREFER_CNG_KSP,
             )?;
             Ok(CertStore(store))
@@ -178,9 +179,10 @@ impl CertStore {
         let mut name_size = 0;
 
         unsafe {
+            let field_name = U16CString::from_str_unchecked(field);
             if !CertStrToNameW(
                 MY_ENCODING_TYPE.0,
-                field,
+                PCWSTR(field_name.as_ptr()),
                 CERT_X500_NAME_STR,
                 ptr::null_mut(),
                 ptr::null_mut(),
@@ -195,7 +197,7 @@ impl CertStore {
             let mut x509name = vec![0u8; name_size as usize];
             if !CertStrToNameW(
                 MY_ENCODING_TYPE.0,
-                field,
+                PCWSTR(field_name.as_ptr()),
                 CERT_X500_NAME_STR,
                 ptr::null_mut(),
                 x509name.as_mut_ptr() as _,

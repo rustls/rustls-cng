@@ -2,7 +2,7 @@
 
 use std::{mem, os::raw::c_void, ptr, sync::Arc};
 
-use widestring::{U16CStr, U16CString};
+use widestring::{u16cstr, U16CStr, U16CString};
 use windows::{
     core::PCWSTR,
     Win32::Security::{
@@ -101,9 +101,11 @@ impl NCryptKey {
     fn get_string_property(&self, property: &str) -> Result<String, CngError> {
         let mut result: u32 = 0;
         unsafe {
+            let property = U16CString::from_str_unchecked(property);
+
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
-                property,
+                PCWSTR(property.as_ptr()),
                 ptr::null_mut(),
                 0,
                 &mut result,
@@ -114,7 +116,7 @@ impl NCryptKey {
 
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
-                property,
+                PCWSTR(property.as_ptr()),
                 prop_value.as_mut_ptr(),
                 prop_value.len() as u32,
                 &mut result,
@@ -132,7 +134,7 @@ impl NCryptKey {
         unsafe {
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
-                NCRYPT_LENGTH_PROPERTY,
+                PCWSTR(u16cstr!(NCRYPT_LENGTH_PROPERTY).as_ptr()),
                 &mut bits as *mut _ as _,
                 mem::size_of::<u32>() as u32,
                 &mut result,

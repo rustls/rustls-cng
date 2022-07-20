@@ -26,7 +26,6 @@ fn test_sign() {
         SignatureScheme::RSA_PSS_SHA512,
         SignatureScheme::ECDSA_NISTP256_SHA256,
         SignatureScheme::ECDSA_NISTP384_SHA384,
-        SignatureScheme::ECDSA_NISTP521_SHA512,
     ];
 
     let key = context.acquire_key().unwrap();

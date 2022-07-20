@@ -1,6 +1,6 @@
 [package]
 name = "rustls-cng"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]
 description = "Windows CNG API bridge for rustls"
 license = "MIT/Apache-2.0"
@@ -16,8 +16,7 @@ targets = ["x86_64-pc-windows-gnu"]
 [dependencies]
 rustls = "0.20"
 sha2 = "0.10"
-windows = { version = "0.38", features = [
-    "alloc", "Win32_Foundation", "Win32_Security_Cryptography"] }
+windows = { version = "0.39", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 widestring = "1"
 thiserror = "1"
 
