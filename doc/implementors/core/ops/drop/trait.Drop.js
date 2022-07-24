@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["rustls_cng"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.61.0/core/ops/drop/trait.Drop.html\" title=\"trait core::ops::drop::Drop\">Drop</a> for <a class=\"struct\" href=\"rustls_cng/store/struct.CertStore.html\" title=\"struct rustls_cng::store::CertStore\">CertStore</a>","synthetic":false,"types":["rustls_cng::store::CertStore"]}];
+implementors["rustls_cng"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.62.0/core/ops/drop/trait.Drop.html\" title=\"trait core::ops::drop::Drop\">Drop</a> for <a class=\"struct\" href=\"rustls_cng/store/struct.CertStore.html\" title=\"struct rustls_cng::store::CertStore\">CertStore</a>","synthetic":false,"types":["rustls_cng::store::CertStore"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

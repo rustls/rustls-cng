@@ -152,7 +152,7 @@
     <span class="ident">CryptAcquireCertificatePrivateKey</span>, <span class="ident">CERT_CHAIN_CONTEXT</span>, <span class="ident">CERT_CHAIN_PARA</span>, <span class="ident">CERT_CONTEXT</span>,
     <span class="ident">CERT_KEY_SPEC</span>, <span class="ident">CRYPT_ACQUIRE_FLAGS</span>, <span class="ident">CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG</span>,
     <span class="ident">CRYPT_ACQUIRE_SILENT_FLAG</span>, <span class="ident">HCERTCHAINENGINE</span>, <span class="ident">HCERTSTORE</span>, <span class="ident">HCRYPTPROV_OR_NCRYPT_KEY_HANDLE</span>,
-    <span class="ident">NCRYPT_HANDLE</span>,
+    <span class="ident">NCRYPT_KEY_HANDLE</span>,
 };
 
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">error::CngError</span>, <span class="ident">key::NCryptKey</span>};
@@ -220,7 +220,7 @@
             )
             .<span class="ident">as_bool</span>();
             <span class="kw">if</span> <span class="ident">result</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">NCryptKey::owned</span>(<span class="ident">NCRYPT_HANDLE</span>(<span class="ident">handle</span>.<span class="number">0</span>)))
+                <span class="prelude-val">Ok</span>(<span class="ident">NCryptKey::owned</span>(<span class="ident">NCRYPT_KEY_HANDLE</span>(<span class="ident">handle</span>.<span class="number">0</span>)))
             } <span class="kw">else</span> {
                 <span class="prelude-val">Err</span>(<span class="ident">CngError::Windows</span>(<span class="ident">windows::core::Error::from_win32</span>()))
             }
@@ -284,5 +284,5 @@
     }
 }
 </code></pre></div>
-</section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="rustls_cng" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.61.0 (fe5b13d68 2022-05-18)" ></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="rustls_cng" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.62.0 (a8314ef7d 2022-06-27)" ></div>
 </body></html>
