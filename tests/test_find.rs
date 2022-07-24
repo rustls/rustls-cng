@@ -62,3 +62,11 @@ fn test_find_by_hash() {
     let context = store.find_by_sha1(&sha1).unwrap().into_iter().next();
     assert!(context.is_some());
 }
+
+#[test]
+fn test_find_all() {
+    let store = CertStore::from_pkcs12(PFX, PASSWORD).expect("Cannot open cert store");
+
+    let context = store.find_all().unwrap().into_iter().next();
+    assert!(context.is_some());
+}
