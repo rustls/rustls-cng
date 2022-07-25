@@ -18,6 +18,9 @@ enum InnerContext {
     Borrowed(*const CERT_CONTEXT),
 }
 
+unsafe impl Send for InnerContext {}
+unsafe impl Sync for InnerContext {}
+
 impl InnerContext {
     fn inner(&self) -> *const CERT_CONTEXT {
         match self {
