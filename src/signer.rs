@@ -12,11 +12,6 @@ use crate::{
     key::{AlgorithmGroup, NCryptKey, SignaturePadding},
 };
 
-fn do_sha(message: &[u8], mut hasher: impl Digest) -> Vec<u8> {
-    hasher.update(message);
-    hasher.finalize().to_vec()
-}
-
 // Convert IEEE-P1363 signature format to ASN.1
 fn p1363_to_der(data: &[u8]) -> Vec<u8> {
     let mut result = Vec::new();
@@ -108,35 +103,35 @@ impl CngSigner {
     fn hash(&self, message: &[u8]) -> Result<(Vec<u8>, SignaturePadding), Error> {
         let (hash, padding) = match self.scheme {
             SignatureScheme::RSA_PKCS1_SHA256 => (
-                do_sha(message, sha2::Sha256::default()),
+                sha2::Sha256::digest(message).to_vec(),
                 SignaturePadding::Pkcs1,
             ),
             SignatureScheme::RSA_PKCS1_SHA384 => (
-                do_sha(message, sha2::Sha384::default()),
+                sha2::Sha384::digest(message).to_vec(),
                 SignaturePadding::Pkcs1,
             ),
             SignatureScheme::RSA_PKCS1_SHA512 => (
-                do_sha(message, sha2::Sha512::default()),
+                sha2::Sha512::digest(message).to_vec(),
                 SignaturePadding::Pkcs1,
             ),
             SignatureScheme::RSA_PSS_SHA256 => (
-                do_sha(message, sha2::Sha256::default()),
+                sha2::Sha256::digest(message).to_vec(),
                 SignaturePadding::Pss,
             ),
             SignatureScheme::RSA_PSS_SHA384 => (
-                do_sha(message, sha2::Sha384::default()),
+                sha2::Sha384::digest(message).to_vec(),
                 SignaturePadding::Pss,
             ),
             SignatureScheme::RSA_PSS_SHA512 => (
-                do_sha(message, sha2::Sha512::default()),
+                sha2::Sha512::digest(message).to_vec(),
                 SignaturePadding::Pss,
             ),
             SignatureScheme::ECDSA_NISTP256_SHA256 => (
-                do_sha(message, sha2::Sha256::default()),
+                sha2::Sha256::digest(message).to_vec(),
                 SignaturePadding::None,
             ),
             SignatureScheme::ECDSA_NISTP384_SHA384 => (
-                do_sha(message, sha2::Sha384::default()),
+                sha2::Sha384::digest(message).to_vec(),
                 SignaturePadding::None,
             ),
             _ => return Err(Error::General("Unsupported signature scheme!".to_owned())),
