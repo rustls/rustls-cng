@@ -83,7 +83,7 @@ impl ResolvesServerCert for ServerCertResolver {
 
 fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
     println!("Accepted incoming connection from {}", stream.peer_addr()?);
-    let mut connection = ServerConnection::new(config.clone())?;
+    let mut connection = ServerConnection::new(config)?;
     let mut tls_stream = Stream::new(&mut connection, &mut stream);
 
     // perform handshake early to get and dump some protocol information
@@ -113,13 +113,11 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
 }
 
 fn accept(server: TcpListener, config: Arc<ServerConfig>) -> anyhow::Result<()> {
-    for stream in server.incoming() {
-        if let Ok(stream) = stream {
-            let config = config.clone();
-            std::thread::spawn(|| {
-                let _ = handle_connection(stream, config);
-            });
-        }
+    for stream in server.incoming().flatten() {
+        let config = config.clone();
+        std::thread::spawn(|| {
+            let _ = handle_connection(stream, config);
+        });
     }
     Ok(())
 }

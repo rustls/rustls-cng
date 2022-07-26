@@ -92,7 +92,6 @@ impl CertContext {
                 (*self.inner()).pbCertEncoded,
                 (*self.inner()).cbCertEncoded as usize,
             )
-            .into()
         }
     }
 
