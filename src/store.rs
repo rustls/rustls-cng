@@ -5,7 +5,7 @@ use std::ptr;
 
 use widestring::U16CString;
 use windows::{
-    core::{PCSTR, PCWSTR},
+    core::PCWSTR,
     Win32::Security::Cryptography::{
         CertCloseStore, CertDuplicateCertificateContext, CertFindCertificateInStore, CertOpenStore,
         CertStrToNameW, PFXImportCertStore, CERT_CONTEXT, CERT_FIND_ANY, CERT_FIND_FLAGS,
