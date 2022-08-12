@@ -26,7 +26,7 @@ const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE =
     CERT_QUERY_ENCODING_TYPE(PKCS_7_ASN_ENCODING.0 | X509_ASN_ENCODING.0);
 
 /// Certificate store type
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd)]
 pub enum CertStoreType {
     LocalMachine,
     CurrentUser,

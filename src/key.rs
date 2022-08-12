@@ -20,7 +20,7 @@ use windows::{
 use crate::error::CngError;
 
 /// Algorithm group of the CNG private key
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
 pub enum AlgorithmGroup {
     Rsa,
     Ecdsa,
@@ -40,7 +40,7 @@ impl AlgorithmGroup {
 }
 
 /// Signature padding. Used with RSA keys.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd)]
 pub enum SignaturePadding {
     None,
     Pkcs1,
