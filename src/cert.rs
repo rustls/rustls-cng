@@ -80,7 +80,7 @@ impl CertContext {
             if result {
                 Ok(NCryptKey::new_owned(NCRYPT_KEY_HANDLE(handle.0)))
             } else {
-                Err(CngError::Windows(windows::core::Error::from_win32()))
+                Err(CngError::from_win32_error())
             }
         }
     }
@@ -135,7 +135,7 @@ impl CertContext {
 
                 Ok(chain)
             } else {
-                Err(CngError::CertificateChain)
+                Err(CngError::InvalidCertificateChain)
             }
         }
     }

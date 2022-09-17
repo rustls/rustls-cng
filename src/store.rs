@@ -204,7 +204,7 @@ impl CertStore {
             )
             .as_bool()
             {
-                return Err(CngError::Windows(windows::core::Error::from_win32()));
+                return Err(CngError::from_win32_error());
             }
 
             let mut x509name = vec![0u8; name_size as usize];
@@ -219,7 +219,7 @@ impl CertStore {
             )
             .as_bool()
             {
-                return Err(CngError::Windows(windows::core::Error::from_win32()));
+                return Err(CngError::from_win32_error());
             }
 
             let name_blob = CRYPTOAPI_BLOB {

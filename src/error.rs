@@ -9,7 +9,13 @@ pub enum CngError {
     #[error("Invalid hash length")]
     InvalidHashLength,
     #[error("Certificate chain error")]
-    CertificateChain,
+    InvalidCertificateChain,
     #[error(transparent)]
-    Windows(#[from] windows::core::Error),
+    WindowsError(#[from] windows::core::Error),
+}
+
+impl CngError {
+    pub fn from_win32_error() -> Self {
+        Self::WindowsError(windows::core::Error::from_win32())
+    }
 }
