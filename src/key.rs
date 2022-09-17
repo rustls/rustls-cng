@@ -1,6 +1,6 @@
 //! CNG key wrapper
 
-use std::{mem, os::raw::c_void, ptr, sync::Arc};
+use std::{os::raw::c_void, ptr, sync::Arc};
 
 use widestring::{u16cstr, U16CStr, U16CString};
 use windows::{
@@ -79,12 +79,12 @@ pub struct NCryptKey(Arc<InnerKey>);
 
 impl NCryptKey {
     /// Create an owned instance which frees the underlying handle automatically
-    pub fn owned(handle: NCRYPT_KEY_HANDLE) -> Self {
+    pub fn new_owned(handle: NCRYPT_KEY_HANDLE) -> Self {
         NCryptKey(Arc::new(InnerKey::Owned(handle)))
     }
 
     /// Create a borrowed instance which doesn't free the key handle
-    pub fn borrowed(handle: NCRYPT_KEY_HANDLE) -> Self {
+    pub fn new_borrowed(handle: NCRYPT_KEY_HANDLE) -> Self {
         NCryptKey(Arc::new(InnerKey::Borrowed(handle)))
     }
 
@@ -106,8 +106,7 @@ impl NCryptKey {
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
                 PCWSTR(property.as_ptr()),
-                ptr::null_mut(),
-                0,
+                None,
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
             )?;
@@ -117,8 +116,7 @@ impl NCryptKey {
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
                 PCWSTR(property.as_ptr()),
-                prop_value.as_mut_ptr(),
-                prop_value.len() as u32,
+                Some(prop_value.as_mut()),
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
             )?;
@@ -129,19 +127,18 @@ impl NCryptKey {
 
     /// Return a number of bits in the key material
     pub fn bits(&self) -> Result<u32, CngError> {
-        let mut bits: u32 = 0;
+        let mut bits = [0u8; 4];
         let mut result: u32 = 0;
         unsafe {
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
                 PCWSTR(u16cstr!(NCRYPT_LENGTH_PROPERTY).as_ptr()),
-                &mut bits as *mut _ as _,
-                mem::size_of::<u32>() as u32,
+                Some(&mut bits),
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
             )?;
 
-            Ok(bits)
+            Ok(u32::from_ne_bytes(bits))
         }
     }
 
@@ -186,10 +183,8 @@ impl NCryptKey {
             NCryptSignHash(
                 NCRYPT_KEY_HANDLE(self.inner().0),
                 info,
-                hash.as_ptr(),
-                hash.len() as u32,
-                ptr::null_mut(),
-                0,
+                hash,
+                None,
                 &mut result,
                 NCRYPT_SILENT_FLAG | flag,
             )?;
@@ -199,10 +194,8 @@ impl NCryptKey {
             NCryptSignHash(
                 NCRYPT_KEY_HANDLE(self.inner().0),
                 info,
-                hash.as_ptr(),
-                hash.len() as u32,
-                signature.as_mut_ptr(),
-                signature.len() as u32,
+                hash,
+                Some(signature.as_mut()),
                 &mut result,
                 NCRYPT_SILENT_FLAG | flag,
             )?;

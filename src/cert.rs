@@ -34,7 +34,7 @@ impl Drop for InnerContext {
     fn drop(&mut self) {
         match self {
             Self::Owned(handle) => unsafe {
-                CertFreeCertificateContext(*handle);
+                CertFreeCertificateContext(handle.as_ref());
             },
             Self::Borrowed(_) => {}
         }
@@ -47,18 +47,18 @@ pub struct CertContext(Arc<InnerContext>);
 
 impl CertContext {
     /// Construct CertContext as an owned object which automatically frees the inner handle
-    pub fn owned(context: *const CERT_CONTEXT) -> Self {
+    pub fn new_owned(context: *const CERT_CONTEXT) -> Self {
         Self(Arc::new(InnerContext::Owned(context)))
     }
 
     /// Construct CertContext as a borrowed object which does not free the inner handle
-    pub fn borrowed(context: *const CERT_CONTEXT) -> Self {
+    pub fn new_borrowed(context: *const CERT_CONTEXT) -> Self {
         Self(Arc::new(InnerContext::Borrowed(context)))
     }
 
-    /// Return a raw reference to the inner handle
-    pub fn inner(&self) -> *const CERT_CONTEXT {
-        self.0.inner()
+    /// Return a reference to the inner handle
+    pub fn inner(&self) -> &CERT_CONTEXT {
+        unsafe { &*self.0.inner() }
     }
 
     /// Attempt to silently acquire a CNG private key from this context.
@@ -73,12 +73,12 @@ impl CertContext {
                 flags,
                 ptr::null_mut(),
                 &mut handle,
-                &mut key_spec,
-                ptr::null_mut(),
+                Some(&mut key_spec),
+                None,
             )
             .as_bool();
             if result {
-                Ok(NCryptKey::owned(NCRYPT_KEY_HANDLE(handle.0)))
+                Ok(NCryptKey::new_owned(NCRYPT_KEY_HANDLE(handle.0)))
             } else {
                 Err(CngError::Windows(windows::core::Error::from_win32()))
             }
@@ -107,8 +107,8 @@ impl CertContext {
 
             let result = CertGetCertificateChain(
                 HCERTCHAINENGINE::default(),
-                self.0.inner(),
-                ptr::null(),
+                self.inner(),
+                None,
                 HCERTSTORE::default(),
                 &param,
                 0,
@@ -127,11 +127,11 @@ impl CertContext {
                     );
                     for element in elements {
                         let context = (**element).pCertContext;
-                        chain.push(Self::borrowed(context).as_der().to_vec());
+                        chain.push(Self::new_borrowed(context).as_der().to_vec());
                     }
                 }
 
-                CertFreeCertificateChain(context);
+                CertFreeCertificateChain(&*context);
 
                 Ok(chain)
             } else {

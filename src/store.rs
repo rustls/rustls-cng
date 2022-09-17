@@ -155,14 +155,21 @@ impl CertStore {
 
         loop {
             cert = unsafe {
-                CertFindCertificateInStore(self.0, MY_ENCODING_TYPE.0, 0, flags, find_param, cert)
+                CertFindCertificateInStore(
+                    self.0,
+                    MY_ENCODING_TYPE.0,
+                    0,
+                    flags,
+                    find_param,
+                    cert.as_ref(),
+                )
             };
             if cert.is_null() {
                 break;
             } else {
                 // increase refcount because it will be released by next call to CertFindCertificateInStore
-                let cert = unsafe { CertDuplicateCertificateContext(cert) };
-                certs.push(CertContext::owned(cert))
+                let cert = unsafe { CertDuplicateCertificateContext(cert.as_ref()) };
+                certs.push(CertContext::new_owned(cert))
             }
         }
         Ok(certs)
@@ -193,7 +200,7 @@ impl CertStore {
                 ptr::null_mut(),
                 ptr::null_mut(),
                 &mut name_size,
-                ptr::null_mut(),
+                None,
             )
             .as_bool()
             {
@@ -208,7 +215,7 @@ impl CertStore {
                 ptr::null_mut(),
                 x509name.as_mut_ptr() as _,
                 &mut name_size,
-                ptr::null_mut(),
+                None,
             )
             .as_bool()
             {
