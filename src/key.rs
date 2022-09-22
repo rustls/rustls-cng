@@ -182,7 +182,7 @@ impl NCryptKey {
 
             NCryptSignHash(
                 NCRYPT_KEY_HANDLE(self.inner().0),
-                info,
+                Some(info),
                 hash,
                 None,
                 &mut result,
@@ -193,7 +193,7 @@ impl NCryptKey {
 
             NCryptSignHash(
                 NCRYPT_KEY_HANDLE(self.inner().0),
-                info,
+                Some(info),
                 hash,
                 Some(signature.as_mut()),
                 &mut result,

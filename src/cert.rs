@@ -34,7 +34,7 @@ impl Drop for InnerContext {
     fn drop(&mut self) {
         match self {
             Self::Owned(handle) => unsafe {
-                CertFreeCertificateContext(handle.as_ref());
+                CertFreeCertificateContext(Some(*handle));
             },
             Self::Borrowed(_) => {}
         }
@@ -71,7 +71,7 @@ impl CertContext {
             let result = CryptAcquireCertificatePrivateKey(
                 self.inner(),
                 flags,
-                ptr::null_mut(),
+                None,
                 &mut handle,
                 Some(&mut key_spec),
                 None,
@@ -112,7 +112,7 @@ impl CertContext {
                 HCERTSTORE::default(),
                 &param,
                 0,
-                ptr::null_mut(),
+                None,
                 &mut context,
             );
 

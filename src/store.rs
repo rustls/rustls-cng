@@ -71,7 +71,7 @@ impl CertStore {
                 CERT_QUERY_ENCODING_TYPE::default(),
                 HCRYPTPROV_LEGACY::default(),
                 CERT_OPEN_STORE_FLAGS(store_type.as_flags() | CERT_STORE_OPEN_EXISTING_FLAG.0),
-                store_name.as_ptr() as _,
+                Some(store_name.as_ptr() as _),
             )?;
             Ok(CertStore(handle))
         }
@@ -160,15 +160,15 @@ impl CertStore {
                     MY_ENCODING_TYPE.0,
                     0,
                     flags,
-                    find_param,
-                    cert.as_ref(),
+                    Some(find_param),
+                    Some(cert),
                 )
             };
             if cert.is_null() {
                 break;
             } else {
                 // increase refcount because it will be released by next call to CertFindCertificateInStore
-                let cert = unsafe { CertDuplicateCertificateContext(cert.as_ref()) };
+                let cert = unsafe { CertDuplicateCertificateContext(Some(cert)) };
                 certs.push(CertContext::new_owned(cert))
             }
         }
@@ -197,8 +197,8 @@ impl CertStore {
                 MY_ENCODING_TYPE.0,
                 PCWSTR(field_name.as_ptr()),
                 CERT_X500_NAME_STR,
-                ptr::null_mut(),
-                ptr::null_mut(),
+                None,
+                None,
                 &mut name_size,
                 None,
             )
@@ -212,8 +212,8 @@ impl CertStore {
                 MY_ENCODING_TYPE.0,
                 PCWSTR(field_name.as_ptr()),
                 CERT_X500_NAME_STR,
-                ptr::null_mut(),
-                x509name.as_mut_ptr() as _,
+                None,
+                Some(x509name.as_mut_ptr() as _),
                 &mut name_size,
                 None,
             )
