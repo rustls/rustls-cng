@@ -213,7 +213,7 @@ impl CertStore {
                 PCWSTR(field_name.as_ptr()),
                 CERT_X500_NAME_STR,
                 None,
-                Some(x509name.as_mut_ptr() as _),
+                Some(x509name.as_mut_ptr()),
                 &mut name_size,
                 None,
             )
@@ -224,7 +224,7 @@ impl CertStore {
 
             let name_blob = CRYPTOAPI_BLOB {
                 cbData: x509name.len() as _,
-                pbData: x509name.as_mut_ptr() as _,
+                pbData: x509name.as_mut_ptr(),
             };
 
             self.do_find(flags, &name_blob as *const _ as _)
