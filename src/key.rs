@@ -2,7 +2,7 @@
 
 use std::{os::raw::c_void, ptr, sync::Arc};
 
-use widestring::{u16cstr, U16CStr, U16CString};
+use widestring::U16CStr;
 use windows::{
     core::PCWSTR,
     Win32::Security::{
@@ -98,14 +98,12 @@ impl NCryptKey {
         NCRYPT_HANDLE(self.0.inner().0)
     }
 
-    fn get_string_property(&self, property: &str) -> Result<String, CngError> {
+    fn get_string_property(&self, property: PCWSTR) -> Result<String, CngError> {
         let mut result: u32 = 0;
         unsafe {
-            let property = U16CString::from_str_unchecked(property);
-
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
-                PCWSTR(property.as_ptr()),
+                property,
                 None,
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
@@ -132,7 +130,7 @@ impl NCryptKey {
         unsafe {
             NCryptGetProperty(
                 self.as_ncrypt_handle(),
-                PCWSTR(u16cstr!(NCRYPT_LENGTH_PROPERTY).as_ptr()),
+                NCRYPT_LENGTH_PROPERTY,
                 Some(&mut bits),
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
@@ -164,16 +162,15 @@ impl NCryptKey {
                 64 => BCRYPT_SHA512_ALGORITHM,
                 _ => return Err(CngError::InvalidHashLength),
             };
-            let alg_name = U16CString::from_str_unchecked(hash_alg);
             let mut pkcs1 = BCRYPT_PKCS1_PADDING_INFO::default();
             let mut pss = BCRYPT_PSS_PADDING_INFO::default();
             let (info, flag) = match padding {
                 SignaturePadding::Pkcs1 => {
-                    pkcs1.pszAlgId = PCWSTR(alg_name.as_ptr());
+                    pkcs1.pszAlgId = hash_alg;
                     (&pkcs1 as *const _ as *const c_void, BCRYPT_PAD_PKCS1)
                 }
                 SignaturePadding::Pss => {
-                    pss.pszAlgId = PCWSTR(alg_name.as_ptr());
+                    pss.pszAlgId = hash_alg;
                     pss.cbSalt = hash.len() as u32;
                     (&pss as *const _ as *const c_void, BCRYPT_PAD_PSS)
                 }
