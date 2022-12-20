@@ -89,8 +89,8 @@ impl CertContext {
     pub fn as_der(&self) -> &[u8] {
         unsafe {
             slice::from_raw_parts(
-                (*self.inner()).pbCertEncoded,
-                (*self.inner()).cbCertEncoded as usize,
+                self.inner().pbCertEncoded,
+                self.inner().cbCertEncoded as usize,
             )
         }
     }
