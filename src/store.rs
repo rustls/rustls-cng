@@ -14,7 +14,7 @@ use windows::{
         CERT_STORE_OPEN_EXISTING_FLAG, CERT_STORE_PROV_SYSTEM_W,
         CERT_SYSTEM_STORE_CURRENT_SERVICE_ID, CERT_SYSTEM_STORE_CURRENT_USER_ID,
         CERT_SYSTEM_STORE_LOCAL_MACHINE_ID, CERT_SYSTEM_STORE_LOCATION_SHIFT, CERT_X500_NAME_STR,
-        CRYPTOAPI_BLOB, CRYPT_EXPORTABLE, HCERTSTORE, HCRYPTPROV_LEGACY,
+        CRYPT_EXPORTABLE, CRYPT_INTEGER_BLOB, HCERTSTORE, HCRYPTPROV_LEGACY,
         PKCS12_INCLUDE_EXTENDED_PROPERTIES, PKCS12_PREFER_CNG_KSP, PKCS_7_ASN_ENCODING,
         X509_ASN_ENCODING,
     },
@@ -80,7 +80,7 @@ impl CertStore {
     /// Import certificate store from PKCS12 file
     pub fn from_pkcs12(data: &[u8], password: &str) -> Result<CertStore, CngError> {
         unsafe {
-            let blob = CRYPTOAPI_BLOB {
+            let blob = CRYPT_INTEGER_BLOB {
                 cbData: data.len() as u32,
                 pbData: data.as_ptr() as _,
             };
@@ -132,7 +132,7 @@ impl CertStore {
     where
         D: AsRef<[u8]>,
     {
-        let hash_blob = CRYPTOAPI_BLOB {
+        let hash_blob = CRYPT_INTEGER_BLOB {
             cbData: hash.as_ref().len() as u32,
             pbData: hash.as_ref().as_ptr() as _,
         };
@@ -157,7 +157,7 @@ impl CertStore {
             cert = unsafe {
                 CertFindCertificateInStore(
                     self.0,
-                    MY_ENCODING_TYPE.0,
+                    MY_ENCODING_TYPE,
                     0,
                     flags,
                     Some(find_param),
@@ -194,7 +194,7 @@ impl CertStore {
         unsafe {
             let field_name = U16CString::from_str_unchecked(field);
             if !CertStrToNameW(
-                MY_ENCODING_TYPE.0,
+                MY_ENCODING_TYPE,
                 PCWSTR(field_name.as_ptr()),
                 CERT_X500_NAME_STR,
                 None,
@@ -209,7 +209,7 @@ impl CertStore {
 
             let mut x509name = vec![0u8; name_size as usize];
             if !CertStrToNameW(
-                MY_ENCODING_TYPE.0,
+                MY_ENCODING_TYPE,
                 PCWSTR(field_name.as_ptr()),
                 CERT_X500_NAME_STR,
                 None,
@@ -222,7 +222,7 @@ impl CertStore {
                 return Err(CngError::from_win32_error());
             }
 
-            let name_blob = CRYPTOAPI_BLOB {
+            let name_blob = CRYPT_INTEGER_BLOB {
                 cbData: x509name.len() as _,
                 pbData: x509name.as_mut_ptr(),
             };
