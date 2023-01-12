@@ -5,16 +5,7 @@ use std::{os::raw::c_void, ptr, sync::Arc};
 use widestring::U16CStr;
 use windows::{
     core::PCWSTR,
-    Win32::Security::{
-        Cryptography::{
-            NCryptFreeObject, NCryptGetProperty, NCryptSignHash, BCRYPT_PAD_PKCS1, BCRYPT_PAD_PSS,
-            BCRYPT_PKCS1_PADDING_INFO, BCRYPT_PSS_PADDING_INFO, BCRYPT_SHA256_ALGORITHM,
-            BCRYPT_SHA384_ALGORITHM, BCRYPT_SHA512_ALGORITHM, NCRYPT_ALGORITHM_GROUP_PROPERTY,
-            NCRYPT_ALGORITHM_PROPERTY, NCRYPT_FLAGS, NCRYPT_HANDLE, NCRYPT_KEY_HANDLE,
-            NCRYPT_LENGTH_PROPERTY, NCRYPT_SILENT_FLAG,
-        },
-        OBJECT_SECURITY_INFORMATION,
-    },
+    Win32::Security::{Cryptography::*, OBJECT_SECURITY_INFORMATION},
 };
 
 use crate::error::CngError;

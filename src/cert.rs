@@ -2,13 +2,7 @@
 
 use std::{mem, ptr, slice, sync::Arc};
 
-use windows::Win32::Security::Cryptography::{
-    CertFreeCertificateChain, CertFreeCertificateContext, CertGetCertificateChain,
-    CryptAcquireCertificatePrivateKey, CERT_CHAIN_CONTEXT, CERT_CHAIN_PARA, CERT_CONTEXT,
-    CERT_KEY_SPEC, CRYPT_ACQUIRE_FLAGS, CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG,
-    CRYPT_ACQUIRE_SILENT_FLAG, HCERTCHAINENGINE, HCERTSTORE, HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
-    NCRYPT_KEY_HANDLE,
-};
+use windows::Win32::Security::Cryptography::*;
 
 use crate::{error::CngError, key::NCryptKey};
 

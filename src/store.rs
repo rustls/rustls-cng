@@ -1,24 +1,9 @@
 //! Windows certificate store wrapper
 
-use std::os::raw::c_void;
-use std::ptr;
+use std::{os::raw::c_void, ptr};
 
 use widestring::U16CString;
-use windows::{
-    core::PCWSTR,
-    Win32::Security::Cryptography::{
-        CertCloseStore, CertDuplicateCertificateContext, CertFindCertificateInStore, CertOpenStore,
-        CertStrToNameW, PFXImportCertStore, CERT_CONTEXT, CERT_FIND_ANY, CERT_FIND_FLAGS,
-        CERT_FIND_HASH, CERT_FIND_ISSUER_NAME, CERT_FIND_ISSUER_STR, CERT_FIND_SUBJECT_NAME,
-        CERT_FIND_SUBJECT_STR, CERT_OPEN_STORE_FLAGS, CERT_QUERY_ENCODING_TYPE,
-        CERT_STORE_OPEN_EXISTING_FLAG, CERT_STORE_PROV_SYSTEM_W,
-        CERT_SYSTEM_STORE_CURRENT_SERVICE_ID, CERT_SYSTEM_STORE_CURRENT_USER_ID,
-        CERT_SYSTEM_STORE_LOCAL_MACHINE_ID, CERT_SYSTEM_STORE_LOCATION_SHIFT, CERT_X500_NAME_STR,
-        CRYPT_EXPORTABLE, CRYPT_INTEGER_BLOB, HCERTSTORE, HCRYPTPROV_LEGACY,
-        PKCS12_INCLUDE_EXTENDED_PROPERTIES, PKCS12_PREFER_CNG_KSP, PKCS_7_ASN_ENCODING,
-        X509_ASN_ENCODING,
-    },
-};
+use windows::{core::PCWSTR, Win32::Security::Cryptography::*};
 
 use crate::{cert::CertContext, error::CngError};
 
