@@ -158,12 +158,18 @@ impl NCryptKey {
             let (info, flag) = match padding {
                 SignaturePadding::Pkcs1 => {
                     pkcs1.pszAlgId = hash_alg;
-                    (&pkcs1 as *const _ as *const c_void, BCRYPT_PAD_PKCS1)
+                    (
+                        &pkcs1 as *const _ as *const c_void,
+                        NCRYPT_FLAGS(BCRYPT_PAD_PKCS1.0),
+                    )
                 }
                 SignaturePadding::Pss => {
                     pss.pszAlgId = hash_alg;
                     pss.cbSalt = hash.len() as u32;
-                    (&pss as *const _ as *const c_void, BCRYPT_PAD_PSS)
+                    (
+                        &pss as *const _ as *const c_void,
+                        NCRYPT_FLAGS(BCRYPT_PAD_PSS.0),
+                    )
                 }
                 SignaturePadding::None => (ptr::null(), NCRYPT_FLAGS::default()),
             };
