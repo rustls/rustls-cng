@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["CngError","Errors that may be returned in this crate"]]});
+window.SIDEBAR_ITEMS = {"enum":["CngError"]};

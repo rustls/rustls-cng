@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["CngSigningKey","Custom implementation of `rustls` SigningKey trait"]]});
+window.SIDEBAR_ITEMS = {"struct":["CngSigningKey"]};

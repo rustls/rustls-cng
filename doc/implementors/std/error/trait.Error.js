@@ -1,3 +1,0 @@
-(function() {var implementors = {};
-implementors["rustls_cng"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.62.0/std/error/trait.Error.html\" title=\"trait std::error::Error\">Error</a> for <a class=\"enum\" href=\"rustls_cng/error/enum.CngError.html\" title=\"enum rustls_cng::error::CngError\">CngError</a>","synthetic":false,"types":["rustls_cng::error::CngError"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

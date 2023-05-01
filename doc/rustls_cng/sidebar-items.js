@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["cert","Wrapper struct for Windows CERT_CONTEXT"],["error","Error struct"],["key","CNG key wrapper"],["signer","SigningKey implementation"],["store","Windows certificate store wrapper"]]});
+window.SIDEBAR_ITEMS = {"mod":["cert","error","key","signer","store"]};

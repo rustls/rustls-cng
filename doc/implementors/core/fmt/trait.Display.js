@@ -1,3 +1,3 @@
-(function() {var implementors = {};
-implementors["rustls_cng"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.62.0/core/fmt/trait.Display.html\" title=\"trait core::fmt::Display\">Display</a> for <a class=\"enum\" href=\"rustls_cng/error/enum.CngError.html\" title=\"enum rustls_cng::error::CngError\">CngError</a>","synthetic":false,"types":["rustls_cng::error::CngError"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {var implementors = {
+"rustls_cng":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.69.0/core/fmt/trait.Display.html\" title=\"trait core::fmt::Display\">Display</a> for <a class=\"enum\" href=\"rustls_cng/error/enum.CngError.html\" title=\"enum rustls_cng::error::CngError\">CngError</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

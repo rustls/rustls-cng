@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["CertContext","CertContext wraps CERT_CONTEXT structure for high-level certificate operations"]]});
+window.SIDEBAR_ITEMS = {"struct":["CertContext"]};
