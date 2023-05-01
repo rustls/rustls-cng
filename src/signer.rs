@@ -1,7 +1,7 @@
 //! SigningKey implementation
 
 use rustls::{
-    internal::msgs::enums::SignatureAlgorithm,
+    SignatureAlgorithm,
     sign::{Signer, SigningKey},
     Error, SignatureScheme,
 };

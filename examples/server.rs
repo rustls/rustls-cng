@@ -96,7 +96,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
         "Cipher suite: {:?}",
         tls_stream.conn.negotiated_cipher_suite()
     );
-    println!("SNI host name: {:?}", tls_stream.conn.sni_hostname());
+    println!("SNI host name: {:?}", tls_stream.conn.server_name());
     println!(
         "Peer certificates: {:?}",
         tls_stream.conn.peer_certificates().map(|c| c.len())
@@ -142,7 +142,7 @@ fn main() -> anyhow::Result<()> {
         .with_safe_default_cipher_suites()
         .with_safe_default_kx_groups()
         .with_safe_default_protocol_versions()?
-        .with_client_cert_verifier(AllowAnyAuthenticatedClient::new(root_store))
+        .with_client_cert_verifier(Arc::new(AllowAnyAuthenticatedClient::new(root_store)))
         .with_cert_resolver(Arc::new(ServerCertResolver(store)));
 
     let server = TcpListener::bind(format!("0.0.0.0:{}", PORT))?;
