@@ -10,7 +10,7 @@ Supported key/certificate types: **RSA**, **ECDSA/ECDH** (secp256r1 and secp384r
 
 ## Documentation
 
-Documentation is available [here](https://ancwrd1.github.io/rustls-cng/doc/rustls_cng).
+Documentation is available [here](https://rustls.github.io/rustls-cng/doc/rustls_cng).
 
 ## Usage
 
