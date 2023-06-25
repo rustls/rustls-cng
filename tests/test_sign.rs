@@ -1,4 +1,4 @@
-use rustls::{SignatureAlgorithm, sign::SigningKey, SignatureScheme};
+use rustls::{sign::SigningKey, SignatureAlgorithm, SignatureScheme};
 
 use rustls_cng::{signer::CngSigningKey, store::CertStore};
 

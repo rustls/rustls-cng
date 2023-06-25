@@ -1,9 +1,8 @@
 //! SigningKey implementation
 
 use rustls::{
-    SignatureAlgorithm,
     sign::{Signer, SigningKey},
-    Error, SignatureScheme,
+    Error, SignatureAlgorithm, SignatureScheme,
 };
 use sha2::digest::Digest;
 

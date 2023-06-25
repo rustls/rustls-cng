@@ -143,7 +143,7 @@ impl NCryptKey {
         self.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
     }
 
-    /// Sign a given digest with this key. The `sign` slice must be 32, 48 or 64 bytes long.
+    /// Sign a given digest with this key. The `hash` slice must be 32, 48 or 64 bytes long.
     pub fn sign(&self, hash: &[u8], padding: SignaturePadding) -> Result<Vec<u8>, CngError> {
         let mut result = 0;
         unsafe {
