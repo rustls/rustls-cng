@@ -3,12 +3,11 @@
 use std::{os::raw::c_void, ptr};
 
 use widestring::U16CString;
-use windows::{core::PCWSTR, Win32::Security::Cryptography::*};
+use windows_sys::Win32::Security::Cryptography::*;
 
 use crate::{cert::CertContext, error::CngError};
 
-const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE =
-    CERT_QUERY_ENCODING_TYPE(PKCS_7_ASN_ENCODING.0 | X509_ASN_ENCODING.0);
+const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE = PKCS_7_ASN_ENCODING | X509_ASN_ENCODING;
 
 /// Certificate store type
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd)]
@@ -55,10 +54,14 @@ impl CertStore {
                 CERT_STORE_PROV_SYSTEM_W,
                 CERT_QUERY_ENCODING_TYPE::default(),
                 HCRYPTPROV_LEGACY::default(),
-                CERT_OPEN_STORE_FLAGS(store_type.as_flags() | CERT_STORE_OPEN_EXISTING_FLAG.0),
-                Some(store_name.as_ptr() as _),
-            )?;
-            Ok(CertStore(handle))
+                store_type.as_flags() | CERT_STORE_OPEN_EXISTING_FLAG,
+                store_name.as_ptr() as _,
+            );
+            if handle.is_null() {
+                Err(CngError::from_win32_error())
+            } else {
+                Ok(CertStore(handle))
+            }
         }
     }
 
@@ -73,10 +76,14 @@ impl CertStore {
             let password = U16CString::from_str_unchecked(password);
             let store = PFXImportCertStore(
                 &blob,
-                PCWSTR(password.as_ptr()),
+                password.as_ptr(),
                 CRYPT_EXPORTABLE | PKCS12_INCLUDE_EXTENDED_PROPERTIES | PKCS12_PREFER_CNG_KSP,
-            )?;
-            Ok(CertStore(store))
+            );
+            if store.is_null() {
+                Err(CngError::from_win32_error())
+            } else {
+                Ok(CertStore(store))
+            }
         }
     }
 
@@ -140,20 +147,13 @@ impl CertStore {
 
         loop {
             cert = unsafe {
-                CertFindCertificateInStore(
-                    self.0,
-                    MY_ENCODING_TYPE,
-                    0,
-                    flags,
-                    Some(find_param),
-                    Some(cert),
-                )
+                CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param, cert)
             };
             if cert.is_null() {
                 break;
             } else {
                 // increase refcount because it will be released by next call to CertFindCertificateInStore
-                let cert = unsafe { CertDuplicateCertificateContext(Some(cert)) };
+                let cert = unsafe { CertDuplicateCertificateContext(cert) };
                 certs.push(CertContext::new_owned(cert))
             }
         }
@@ -178,31 +178,29 @@ impl CertStore {
 
         unsafe {
             let field_name = U16CString::from_str_unchecked(field);
-            if !CertStrToNameW(
+            if CertStrToNameW(
                 MY_ENCODING_TYPE,
-                PCWSTR(field_name.as_ptr()),
+                field_name.as_ptr(),
                 CERT_X500_NAME_STR,
-                None,
-                None,
+                ptr::null(),
+                ptr::null_mut(),
                 &mut name_size,
-                None,
-            )
-            .as_bool()
+                ptr::null_mut(),
+            ) == 0
             {
                 return Err(CngError::from_win32_error());
             }
 
             let mut x509name = vec![0u8; name_size as usize];
-            if !CertStrToNameW(
+            if CertStrToNameW(
                 MY_ENCODING_TYPE,
-                PCWSTR(field_name.as_ptr()),
+                field_name.as_ptr(),
                 CERT_X500_NAME_STR,
-                None,
-                Some(x509name.as_mut_ptr()),
+                ptr::null(),
+                x509name.as_mut_ptr(),
                 &mut name_size,
-                None,
-            )
-            .as_bool()
+                ptr::null_mut(),
+            ) == 0
             {
                 return Err(CngError::from_win32_error());
             }

@@ -2,7 +2,7 @@
 
 use std::{mem, ptr, slice, sync::Arc};
 
-use windows::Win32::Security::Cryptography::*;
+use windows_sys::Win32::Security::Cryptography::*;
 
 use crate::{error::CngError, key::NCryptKey};
 
@@ -28,7 +28,7 @@ impl Drop for InnerContext {
     fn drop(&mut self) {
         match self {
             Self::Owned(handle) => unsafe {
-                CertFreeCertificateContext(Some(*handle));
+                CertFreeCertificateContext(*handle);
             },
             Self::Borrowed(_) => {}
         }
@@ -59,20 +59,18 @@ impl CertContext {
     pub fn acquire_key(&self) -> Result<NCryptKey, CngError> {
         let mut handle = HCRYPTPROV_OR_NCRYPT_KEY_HANDLE::default();
         let mut key_spec = CERT_KEY_SPEC::default();
-        let flags =
-            CRYPT_ACQUIRE_FLAGS(CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG) | CRYPT_ACQUIRE_SILENT_FLAG;
+        let flags = CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG | CRYPT_ACQUIRE_SILENT_FLAG;
         unsafe {
             let result = CryptAcquireCertificatePrivateKey(
                 self.inner(),
                 flags,
-                None,
+                ptr::null(),
                 &mut handle,
-                Some(&mut key_spec),
-                None,
-            )
-            .as_bool();
+                &mut key_spec,
+                ptr::null_mut(),
+            ) != 0;
             if result {
-                Ok(NCryptKey::new_owned(NCRYPT_KEY_HANDLE(handle.0)))
+                Ok(NCryptKey::new_owned(handle))
             } else {
                 Err(CngError::from_win32_error())
             }
@@ -94,7 +92,7 @@ impl CertContext {
         unsafe {
             let param = CERT_CHAIN_PARA {
                 cbSize: mem::size_of::<CERT_CHAIN_PARA>() as u32,
-                RequestedUsage: Default::default(),
+                RequestedUsage: std::mem::zeroed(),
             };
 
             let mut context: *mut CERT_CHAIN_CONTEXT = ptr::null_mut();
@@ -102,15 +100,15 @@ impl CertContext {
             let result = CertGetCertificateChain(
                 HCERTCHAINENGINE::default(),
                 self.inner(),
-                None,
-                HCERTSTORE::default(),
+                ptr::null(),
+                ptr::null_mut(),
                 &param,
                 0,
-                None,
+                ptr::null(),
                 &mut context,
-            );
+            ) != 0;
 
-            if result.as_bool() {
+            if result {
                 let mut chain = vec![];
 
                 if (*context).cChain > 0 {

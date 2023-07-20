@@ -136,8 +136,8 @@ fn main() -> anyhow::Result<()> {
     tls_stream.write_all(b"ping")?;
     tls_stream.sock.shutdown(Shutdown::Write)?;
 
-    let mut buf = Vec::new();
-    tls_stream.read_to_end(&mut buf)?;
+    let mut buf = [0u8; 4];
+    tls_stream.read(&mut buf)?;
     println!("{}", String::from_utf8_lossy(&buf));
 
     tls_stream.sock.shutdown(Shutdown::Read)?;

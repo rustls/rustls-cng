@@ -102,8 +102,8 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
         tls_stream.conn.peer_certificates().map(|c| c.len())
     );
 
-    let mut buf = Vec::new();
-    tls_stream.read_to_end(&mut buf)?;
+    let mut buf = [0u8; 4];
+    tls_stream.read(&mut buf)?;
     println!("{}", String::from_utf8_lossy(&buf));
     tls_stream.sock.shutdown(Shutdown::Read)?;
     tls_stream.write_all(b"pong")?;

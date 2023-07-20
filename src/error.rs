@@ -1,5 +1,10 @@
 //! Error struct
 
+use windows_sys::{
+    core::HRESULT,
+    Win32::Foundation::{GetLastError, ERROR_SUCCESS, WIN32_ERROR},
+};
+
 /// Errors that may be returned in this crate
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
@@ -10,12 +15,20 @@ pub enum CngError {
     InvalidHashLength,
     #[error("Certificate chain error")]
     InvalidCertificateChain,
-    #[error(transparent)]
-    WindowsError(#[from] windows::core::Error),
+    #[error("Windows error 0x{0:x}")]
+    WindowsError(u32),
 }
 
 impl CngError {
     pub fn from_win32_error() -> Self {
-        Self::WindowsError(windows::core::Error::from_win32())
+        unsafe { Self::WindowsError(GetLastError()) }
+    }
+
+    pub fn from_hresult(result: HRESULT) -> Result<(), CngError> {
+        if result as WIN32_ERROR == ERROR_SUCCESS {
+            Ok(())
+        } else {
+            Err(CngError::WindowsError(result as _))
+        }
     }
 }

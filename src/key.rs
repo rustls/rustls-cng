@@ -3,7 +3,7 @@
 use std::{os::raw::c_void, ptr, sync::Arc};
 
 use widestring::U16CStr;
-use windows::{
+use windows_sys::{
     core::PCWSTR,
     Win32::Security::{Cryptography::*, OBJECT_SECURITY_INFORMATION},
 };
@@ -57,7 +57,7 @@ impl Drop for InnerKey {
     fn drop(&mut self) {
         match self {
             Self::Owned(handle) => unsafe {
-                let _ = NCryptFreeObject(NCRYPT_HANDLE(handle.0));
+                let _ = NCryptFreeObject(*handle);
             },
             Self::Borrowed(_) => {}
         }
@@ -86,29 +86,31 @@ impl NCryptKey {
 
     /// Return NCRYPT_HANDLE
     pub fn as_ncrypt_handle(&self) -> NCRYPT_HANDLE {
-        NCRYPT_HANDLE(self.0.inner().0)
+        self.0.inner()
     }
 
     fn get_string_property(&self, property: PCWSTR) -> Result<String, CngError> {
         let mut result: u32 = 0;
         unsafe {
-            NCryptGetProperty(
+            CngError::from_hresult(NCryptGetProperty(
                 self.as_ncrypt_handle(),
                 property,
-                None,
+                ptr::null_mut(),
+                0,
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
-            )?;
+            ))?;
 
             let mut prop_value = vec![0u8; result as usize];
 
-            NCryptGetProperty(
+            CngError::from_hresult(NCryptGetProperty(
                 self.as_ncrypt_handle(),
-                PCWSTR(property.as_ptr()),
-                Some(prop_value.as_mut()),
+                property,
+                prop_value.as_mut_ptr(),
+                prop_value.len() as u32,
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
-            )?;
+            ))?;
 
             Ok(U16CStr::from_ptr_str(prop_value.as_ptr() as _).to_string_lossy())
         }
@@ -119,13 +121,14 @@ impl NCryptKey {
         let mut bits = [0u8; 4];
         let mut result: u32 = 0;
         unsafe {
-            NCryptGetProperty(
+            CngError::from_hresult(NCryptGetProperty(
                 self.as_ncrypt_handle(),
                 NCRYPT_LENGTH_PROPERTY,
-                Some(&mut bits),
+                bits.as_mut_ptr(),
+                4,
                 &mut result,
                 OBJECT_SECURITY_INFORMATION::default(),
-            )?;
+            ))?;
 
             Ok(u32::from_ne_bytes(bits))
         }
@@ -153,46 +156,44 @@ impl NCryptKey {
                 64 => BCRYPT_SHA512_ALGORITHM,
                 _ => return Err(CngError::InvalidHashLength),
             };
-            let mut pkcs1 = BCRYPT_PKCS1_PADDING_INFO::default();
-            let mut pss = BCRYPT_PSS_PADDING_INFO::default();
+            let mut pkcs1 = std::mem::zeroed::<BCRYPT_PKCS1_PADDING_INFO>();
+            let mut pss = std::mem::zeroed::<BCRYPT_PSS_PADDING_INFO>();
             let (info, flag) = match padding {
                 SignaturePadding::Pkcs1 => {
                     pkcs1.pszAlgId = hash_alg;
-                    (
-                        &pkcs1 as *const _ as *const c_void,
-                        NCRYPT_FLAGS(BCRYPT_PAD_PKCS1.0),
-                    )
+                    (&pkcs1 as *const _ as *const c_void, BCRYPT_PAD_PKCS1)
                 }
                 SignaturePadding::Pss => {
                     pss.pszAlgId = hash_alg;
                     pss.cbSalt = hash.len() as u32;
-                    (
-                        &pss as *const _ as *const c_void,
-                        NCRYPT_FLAGS(BCRYPT_PAD_PSS.0),
-                    )
+                    (&pss as *const _ as *const c_void, BCRYPT_PAD_PSS)
                 }
                 SignaturePadding::None => (ptr::null(), NCRYPT_FLAGS::default()),
             };
 
-            NCryptSignHash(
-                NCRYPT_KEY_HANDLE(self.inner().0),
-                Some(info),
-                hash,
-                None,
+            CngError::from_hresult(NCryptSignHash(
+                self.inner(),
+                info,
+                hash.as_ptr(),
+                hash.len() as u32,
+                ptr::null_mut(),
+                0,
                 &mut result,
                 NCRYPT_SILENT_FLAG | flag,
-            )?;
+            ))?;
 
             let mut signature = vec![0u8; result as usize];
 
-            NCryptSignHash(
-                NCRYPT_KEY_HANDLE(self.inner().0),
-                Some(info),
-                hash,
-                Some(signature.as_mut()),
+            CngError::from_hresult(NCryptSignHash(
+                self.inner(),
+                info,
+                hash.as_ptr(),
+                hash.len() as u32,
+                signature.as_mut_ptr(),
+                signature.len() as u32,
                 &mut result,
                 NCRYPT_SILENT_FLAG | flag,
-            )?;
+            ))?;
 
             Ok(signature)
         }
