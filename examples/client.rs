@@ -117,9 +117,7 @@ fn main() -> anyhow::Result<()> {
     root_store.add(&Certificate(ca_cert.as_der().to_vec()))?;
 
     let client_config = ClientConfig::builder()
-        .with_safe_default_cipher_suites()
-        .with_safe_default_kx_groups()
-        .with_safe_default_protocol_versions()?
+        .with_safe_defaults()
         .with_root_certificates(root_store)
         .with_client_cert_resolver(Arc::new(ClientCertResolver(
             store,
