@@ -2,13 +2,20 @@
 
 use std::{os::raw::c_void, ptr, sync::Arc};
 
-use widestring::U16CStr;
 use windows_sys::{
     core::PCWSTR,
     Win32::Security::{Cryptography::*, OBJECT_SECURITY_INFORMATION},
 };
 
 use crate::error::CngError;
+
+unsafe fn utf16_to_string(src: *const u16) -> String {
+    let mut i = 0;
+    while *src.offset(i) != 0 {
+        i += 1;
+    }
+    String::from_utf16_lossy(std::slice::from_raw_parts(src, i as _))
+}
 
 /// Algorithm group of the CNG private key
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
@@ -112,7 +119,7 @@ impl NCryptKey {
                 OBJECT_SECURITY_INFORMATION::default(),
             ))?;
 
-            Ok(U16CStr::from_ptr_str(prop_value.as_ptr() as _).to_string_lossy())
+            Ok(utf16_to_string(prop_value.as_ptr() as _))
         }
     }
 
@@ -197,5 +204,15 @@ impl NCryptKey {
 
             Ok(signature)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    pub fn test_utf16_conversion() {
+        let data = [b'r', 0, b'u', 0, b's', 0, b't', 0, b'l', 0, b's', 0, 0, 0];
+        let s = unsafe { super::utf16_to_string(data.as_ptr() as _) };
+        assert_eq!(s, "rustls");
     }
 }

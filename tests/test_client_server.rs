@@ -94,7 +94,7 @@ mod client {
         tls_stream.sock.shutdown(Shutdown::Write)?;
 
         let mut buf = [0u8; 4];
-        tls_stream.read(&mut buf)?;
+        tls_stream.read_exact(&mut buf)?;
         println!("{}", String::from_utf8_lossy(&buf));
         assert_eq!(&buf, b"pong");
 
@@ -179,7 +179,7 @@ mod server {
         );
 
         let mut buf = [0u8; 4];
-        tls_stream.read(&mut buf)?;
+        tls_stream.read_exact(&mut buf)?;
         println!("{}", String::from_utf8_lossy(&buf));
         assert_eq!(&buf, b"ping");
         tls_stream.sock.shutdown(Shutdown::Read)?;
@@ -225,7 +225,7 @@ fn test_client_server() {
         assert!(server::run_server(tx).is_ok());
     });
 
-    if let Ok(_) = rx.recv() {
+    if rx.recv().is_ok() {
         client::run_client().unwrap();
     }
 }

@@ -2,12 +2,17 @@
 
 use std::{os::raw::c_void, ptr};
 
-use widestring::U16CString;
 use windows_sys::Win32::Security::Cryptography::*;
 
 use crate::{cert::CertContext, error::CngError};
 
 const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE = PKCS_7_ASN_ENCODING | X509_ASN_ENCODING;
+
+macro_rules! utf16z {
+    ($str: expr) => {
+        $str.encode_utf16().chain([0]).collect::<Vec<_>>()
+    };
+}
 
 /// Certificate store type
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd)]
@@ -49,7 +54,7 @@ impl CertStore {
     /// Open certificate store of the given type and name
     pub fn open(store_type: CertStoreType, store_name: &str) -> Result<CertStore, CngError> {
         unsafe {
-            let store_name = U16CString::from_str_unchecked(store_name);
+            let store_name = utf16z!(store_name);
             let handle = CertOpenStore(
                 CERT_STORE_PROV_SYSTEM_W,
                 CERT_QUERY_ENCODING_TYPE::default(),
@@ -73,7 +78,7 @@ impl CertStore {
                 pbData: data.as_ptr() as _,
             };
 
-            let password = U16CString::from_str_unchecked(password);
+            let password = utf16z!(password);
             let store = PFXImportCertStore(
                 &blob,
                 password.as_ptr(),
@@ -165,7 +170,7 @@ impl CertStore {
         pattern: &str,
         flags: CERT_FIND_FLAGS,
     ) -> Result<Vec<CertContext>, CngError> {
-        let u16pattern = unsafe { U16CString::from_str_unchecked(pattern) };
+        let u16pattern = utf16z!(pattern);
         self.do_find(flags, u16pattern.as_ptr() as _)
     }
 
@@ -177,7 +182,7 @@ impl CertStore {
         let mut name_size = 0;
 
         unsafe {
-            let field_name = U16CString::from_str_unchecked(field);
+            let field_name = utf16z!(field);
             if CertStrToNameW(
                 MY_ENCODING_TYPE,
                 field_name.as_ptr(),

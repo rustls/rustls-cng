@@ -137,7 +137,7 @@ fn main() -> anyhow::Result<()> {
     tls_stream.sock.shutdown(Shutdown::Write)?;
 
     let mut buf = [0u8; 4];
-    tls_stream.read(&mut buf)?;
+    tls_stream.read_exact(&mut buf)?;
     println!("{}", String::from_utf8_lossy(&buf));
 
     tls_stream.sock.shutdown(Shutdown::Read)?;
