@@ -1,4 +1,6 @@
-const PORT: u16 = 18118;
+const CA_SUBJECT: &str = "Inforce Technologies CA";
+const CLIENT_PFX: &[u8] = include_bytes!("assets/rustls-client.pfx");
+const SERVER_PFX: &[u8] = include_bytes!("assets/rustls-server.pfx");
 const PASSWORD: &str = "changeit";
 
 mod client {
@@ -14,10 +16,6 @@ mod client {
     };
 
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
-
-    use crate::{PASSWORD, PORT};
-
-    const CLIENT_PFX: &[u8] = include_bytes!("assets/rustls-client.pfx");
 
     pub struct ClientCertResolver(CertStore, String);
 
@@ -65,10 +63,10 @@ mod client {
         }
     }
 
-    pub fn run_client() -> anyhow::Result<()> {
-        let store = CertStore::from_pkcs12(CLIENT_PFX, PASSWORD)?;
+    pub fn run_client(port: u16) -> anyhow::Result<()> {
+        let store = CertStore::from_pkcs12(super::CLIENT_PFX, super::PASSWORD)?;
 
-        let ca_cert_context = store.find_by_subject_str("Inforce Technologies CA")?;
+        let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();
 
         let mut root_store = RootCertStore::empty();
@@ -85,7 +83,7 @@ mod client {
         let mut connection =
             ClientConnection::new(Arc::new(client_config), "rustls-server".try_into()?)?;
 
-        let mut client = TcpStream::connect(format!("localhost:{}", PORT))?;
+        let mut client = TcpStream::connect(format!("localhost:{}", port))?;
 
         let mut tls_stream = Stream::new(&mut connection, &mut client);
         tls_stream.write_all(b"ping")?;
@@ -103,11 +101,10 @@ mod client {
 }
 
 mod server {
-    use std::sync::mpsc::Sender;
     use std::{
         io::{Read, Write},
         net::{Shutdown, TcpListener, TcpStream},
-        sync::Arc,
+        sync::{mpsc::Sender, Arc},
     };
 
     use rustls::{
@@ -118,10 +115,6 @@ mod server {
 
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
-    use crate::{PASSWORD, PORT};
-
-    const SERVER_PFX: &[u8] = include_bytes!("assets/rustls-server.pfx");
-
     pub struct ServerCertResolver(CertStore);
 
     impl ResolvesServerCert for ServerCertResolver {
@@ -129,10 +122,8 @@ mod server {
             println!("Client hello server name: {:?}", client_hello.server_name());
             let name = client_hello.server_name()?;
 
-            // look up certificate by subject
             let contexts = self.0.find_by_subject_str(name).ok()?;
 
-            // attempt to acquire a private key and construct CngSigningKey
             let (context, key) = contexts.into_iter().find_map(|ctx| {
                 let key = ctx.acquire_key().ok()?;
                 CngSigningKey::new(key).ok().map(|key| (ctx, key))
@@ -141,11 +132,9 @@ mod server {
             println!("Key alg group: {:?}", key.key().algorithm_group());
             println!("Key alg: {:?}", key.key().algorithm());
 
-            // attempt to acquire a full certificate chain
             let chain = context.as_chain_der().ok()?;
             let certs = chain.into_iter().map(Certificate).collect();
 
-            // return CertifiedKey instance
             Some(Arc::new(CertifiedKey {
                 cert: certs,
                 key: Arc::new(key),
@@ -160,7 +149,6 @@ mod server {
         let mut connection = ServerConnection::new(config)?;
         let mut tls_stream = Stream::new(&mut connection, &mut stream);
 
-        // perform handshake early to get and dump some protocol information
         if tls_stream.conn.is_handshaking() {
             tls_stream.conn.complete_io(tls_stream.sock)?;
         }
@@ -187,10 +175,10 @@ mod server {
         Ok(())
     }
 
-    pub fn run_server(sender: Sender<()>) -> anyhow::Result<()> {
-        let store = CertStore::from_pkcs12(SERVER_PFX, PASSWORD)?;
+    pub fn run_server(sender: Sender<u16>) -> anyhow::Result<()> {
+        let store = CertStore::from_pkcs12(super::SERVER_PFX, super::PASSWORD)?;
 
-        let ca_cert_context = store.find_by_subject_str("Inforce Technologies CA")?;
+        let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();
 
         let mut root_store = RootCertStore::empty();
@@ -201,9 +189,9 @@ mod server {
             .with_client_cert_verifier(Arc::new(AllowAnyAuthenticatedClient::new(root_store)))
             .with_cert_resolver(Arc::new(ServerCertResolver(store)));
 
-        let server = TcpListener::bind(format!("127.0.0.1:{}", PORT))?;
+        let server = TcpListener::bind("127.0.0.1:0")?;
 
-        let _ = sender.send(());
+        let _ = sender.send(server.local_addr()?.port());
 
         let stream = server.incoming().next().unwrap()?;
         let config = Arc::new(server_config);
@@ -221,7 +209,7 @@ fn test_client_server() {
         assert!(server::run_server(tx).is_ok());
     });
 
-    if rx.recv().is_ok() {
-        client::run_client().unwrap();
+    if let Ok(port) = rx.recv() {
+        client::run_client(port).unwrap();
     }
 }
