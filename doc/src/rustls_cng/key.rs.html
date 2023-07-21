@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/key.rs`."><title>key.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" disabled href="../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" disabled href="../../static.files/ayu-be46fdc453a55015.css"><script src="../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../rustls_cng/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/key.rs`."><title>key.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rustls_cng" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0 (8ede3aae2 2023-07-12)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../rustls_cng/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -198,17 +198,42 @@
 <a href="#198" id="198">198</a>
 <a href="#199" id="199">199</a>
 <a href="#200" id="200">200</a>
-</pre><pre class="rust"><code><span class="doccomment">//! CNG key wrapper
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+</pre></div><pre class="rust"><code><span class="doccomment">//! CNG key wrapper
 
 </span><span class="kw">use </span>std::{os::raw::c_void, ptr, sync::Arc};
 
-<span class="kw">use </span>widestring::U16CStr;
-<span class="kw">use </span>windows::{
+<span class="kw">use </span>windows_sys::{
     core::PCWSTR,
     Win32::Security::{Cryptography::<span class="kw-2">*</span>, OBJECT_SECURITY_INFORMATION},
 };
 
 <span class="kw">use </span><span class="kw">crate</span>::error::CngError;
+
+<span class="kw">unsafe fn </span>utf16_to_string(src: <span class="kw-2">*const </span>u16) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
+    <span class="kw">while </span><span class="kw-2">*</span>src.offset(i) != <span class="number">0 </span>{
+        i += <span class="number">1</span>;
+    }
+    String::from_utf16_lossy(std::slice::from_raw_parts(src, i <span class="kw">as _</span>))
+}
 
 <span class="doccomment">/// Algorithm group of the CNG private key
 </span><span class="attr">#[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
@@ -257,7 +282,7 @@
     <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">match </span><span class="self">self </span>{
             <span class="self">Self</span>::Owned(handle) =&gt; <span class="kw">unsafe </span>{
-                <span class="kw">let _ </span>= NCryptFreeObject(NCRYPT_HANDLE(handle.<span class="number">0</span>));
+                <span class="kw">let _ </span>= NCryptFreeObject(<span class="kw-2">*</span>handle);
             },
             <span class="self">Self</span>::Borrowed(<span class="kw">_</span>) =&gt; {}
         }
@@ -286,31 +311,33 @@
 
     <span class="doccomment">/// Return NCRYPT_HANDLE
     </span><span class="kw">pub fn </span>as_ncrypt_handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; NCRYPT_HANDLE {
-        NCRYPT_HANDLE(<span class="self">self</span>.<span class="number">0</span>.inner().<span class="number">0</span>)
+        <span class="self">self</span>.<span class="number">0</span>.inner()
     }
 
     <span class="kw">fn </span>get_string_property(<span class="kw-2">&amp;</span><span class="self">self</span>, property: PCWSTR) -&gt; <span class="prelude-ty">Result</span>&lt;String, CngError&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>result: u32 = <span class="number">0</span>;
         <span class="kw">unsafe </span>{
-            NCryptGetProperty(
+            CngError::from_hresult(NCryptGetProperty(
                 <span class="self">self</span>.as_ncrypt_handle(),
                 property,
-                <span class="prelude-val">None</span>,
+                ptr::null_mut(),
+                <span class="number">0</span>,
                 <span class="kw-2">&amp;mut </span>result,
                 OBJECT_SECURITY_INFORMATION::default(),
-            )<span class="question-mark">?</span>;
+            ))<span class="question-mark">?</span>;
 
             <span class="kw">let </span><span class="kw-2">mut </span>prop_value = <span class="macro">vec!</span>[<span class="number">0u8</span>; result <span class="kw">as </span>usize];
 
-            NCryptGetProperty(
+            CngError::from_hresult(NCryptGetProperty(
                 <span class="self">self</span>.as_ncrypt_handle(),
-                PCWSTR(property.as_ptr()),
-                <span class="prelude-val">Some</span>(prop_value.as_mut()),
+                property,
+                prop_value.as_mut_ptr(),
+                prop_value.len() <span class="kw">as </span>u32,
                 <span class="kw-2">&amp;mut </span>result,
                 OBJECT_SECURITY_INFORMATION::default(),
-            )<span class="question-mark">?</span>;
+            ))<span class="question-mark">?</span>;
 
-            <span class="prelude-val">Ok</span>(U16CStr::from_ptr_str(prop_value.as_ptr() <span class="kw">as _</span>).to_string_lossy())
+            <span class="prelude-val">Ok</span>(utf16_to_string(prop_value.as_ptr() <span class="kw">as _</span>))
         }
     }
 
@@ -319,13 +346,14 @@
         <span class="kw">let </span><span class="kw-2">mut </span>bits = [<span class="number">0u8</span>; <span class="number">4</span>];
         <span class="kw">let </span><span class="kw-2">mut </span>result: u32 = <span class="number">0</span>;
         <span class="kw">unsafe </span>{
-            NCryptGetProperty(
+            CngError::from_hresult(NCryptGetProperty(
                 <span class="self">self</span>.as_ncrypt_handle(),
                 NCRYPT_LENGTH_PROPERTY,
-                <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span>bits),
+                bits.as_mut_ptr(),
+                <span class="number">4</span>,
                 <span class="kw-2">&amp;mut </span>result,
                 OBJECT_SECURITY_INFORMATION::default(),
-            )<span class="question-mark">?</span>;
+            ))<span class="question-mark">?</span>;
 
             <span class="prelude-val">Ok</span>(u32::from_ne_bytes(bits))
         }
@@ -343,7 +371,7 @@
         <span class="self">self</span>.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
     }
 
-    <span class="doccomment">/// Sign a given digest with this key. The `sign` slice must be 32, 48 or 64 bytes long.
+    <span class="doccomment">/// Sign a given digest with this key. The `hash` slice must be 32, 48 or 64 bytes long.
     </span><span class="kw">pub fn </span>sign(<span class="kw-2">&amp;</span><span class="self">self</span>, hash: <span class="kw-2">&amp;</span>[u8], padding: SignaturePadding) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, CngError&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>result = <span class="number">0</span>;
         <span class="kw">unsafe </span>{
@@ -353,50 +381,57 @@
                 <span class="number">64 </span>=&gt; BCRYPT_SHA512_ALGORITHM,
                 <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(CngError::InvalidHashLength),
             };
-            <span class="kw">let </span><span class="kw-2">mut </span>pkcs1 = BCRYPT_PKCS1_PADDING_INFO::default();
-            <span class="kw">let </span><span class="kw-2">mut </span>pss = BCRYPT_PSS_PADDING_INFO::default();
+            <span class="kw">let </span><span class="kw-2">mut </span>pkcs1 = std::mem::zeroed::&lt;BCRYPT_PKCS1_PADDING_INFO&gt;();
+            <span class="kw">let </span><span class="kw-2">mut </span>pss = std::mem::zeroed::&lt;BCRYPT_PSS_PADDING_INFO&gt;();
             <span class="kw">let </span>(info, flag) = <span class="kw">match </span>padding {
                 SignaturePadding::Pkcs1 =&gt; {
                     pkcs1.pszAlgId = hash_alg;
-                    (
-                        <span class="kw-2">&amp;</span>pkcs1 <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>c_void,
-                        NCRYPT_FLAGS(BCRYPT_PAD_PKCS1.<span class="number">0</span>),
-                    )
+                    (<span class="kw-2">&amp;</span>pkcs1 <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>c_void, BCRYPT_PAD_PKCS1)
                 }
                 SignaturePadding::Pss =&gt; {
                     pss.pszAlgId = hash_alg;
                     pss.cbSalt = hash.len() <span class="kw">as </span>u32;
-                    (
-                        <span class="kw-2">&amp;</span>pss <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>c_void,
-                        NCRYPT_FLAGS(BCRYPT_PAD_PSS.<span class="number">0</span>),
-                    )
+                    (<span class="kw-2">&amp;</span>pss <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>c_void, BCRYPT_PAD_PSS)
                 }
                 SignaturePadding::None =&gt; (ptr::null(), NCRYPT_FLAGS::default()),
             };
 
-            NCryptSignHash(
-                NCRYPT_KEY_HANDLE(<span class="self">self</span>.inner().<span class="number">0</span>),
-                <span class="prelude-val">Some</span>(info),
-                hash,
-                <span class="prelude-val">None</span>,
+            CngError::from_hresult(NCryptSignHash(
+                <span class="self">self</span>.inner(),
+                info,
+                hash.as_ptr(),
+                hash.len() <span class="kw">as </span>u32,
+                ptr::null_mut(),
+                <span class="number">0</span>,
                 <span class="kw-2">&amp;mut </span>result,
                 NCRYPT_SILENT_FLAG | flag,
-            )<span class="question-mark">?</span>;
+            ))<span class="question-mark">?</span>;
 
             <span class="kw">let </span><span class="kw-2">mut </span>signature = <span class="macro">vec!</span>[<span class="number">0u8</span>; result <span class="kw">as </span>usize];
 
-            NCryptSignHash(
-                NCRYPT_KEY_HANDLE(<span class="self">self</span>.inner().<span class="number">0</span>),
-                <span class="prelude-val">Some</span>(info),
-                hash,
-                <span class="prelude-val">Some</span>(signature.as_mut()),
+            CngError::from_hresult(NCryptSignHash(
+                <span class="self">self</span>.inner(),
+                info,
+                hash.as_ptr(),
+                hash.len() <span class="kw">as </span>u32,
+                signature.as_mut_ptr(),
+                signature.len() <span class="kw">as </span>u32,
                 <span class="kw-2">&amp;mut </span>result,
                 NCRYPT_SILENT_FLAG | flag,
-            )<span class="question-mark">?</span>;
+            ))<span class="question-mark">?</span>;
 
             <span class="prelude-val">Ok</span>(signature)
         }
     }
 }
-</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rustls_cng" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0 (84c898d65 2023-04-16)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+
+<span class="attr">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="attr">#[test]
+    </span><span class="kw">pub fn </span>test_utf16_conversion() {
+        <span class="kw">let </span>data = [<span class="string">b&#39;r&#39;</span>, <span class="number">0</span>, <span class="string">b&#39;u&#39;</span>, <span class="number">0</span>, <span class="string">b&#39;s&#39;</span>, <span class="number">0</span>, <span class="string">b&#39;t&#39;</span>, <span class="number">0</span>, <span class="string">b&#39;l&#39;</span>, <span class="number">0</span>, <span class="string">b&#39;s&#39;</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>];
+        <span class="kw">let </span>s = <span class="kw">unsafe </span>{ <span class="kw">super</span>::utf16_to_string(data.as_ptr() <span class="kw">as _</span>) };
+        <span class="macro">assert_eq!</span>(s, <span class="string">&quot;rustls&quot;</span>);
+    }
+}
+</code></pre></div></section></main></body></html>

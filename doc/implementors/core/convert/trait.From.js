@@ -1,3 +1,0 @@
-(function() {var implementors = {
-"rustls_cng":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.69.0/core/convert/trait.From.html\" title=\"trait core::convert::From\">From</a>&lt;Error&gt; for <a class=\"enum\" href=\"rustls_cng/error/enum.CngError.html\" title=\"enum rustls_cng::error::CngError\">CngError</a>"]]
-};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
