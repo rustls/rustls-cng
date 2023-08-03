@@ -7,9 +7,10 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    server::{AllowAnyAuthenticatedClient, ClientHello, ResolvesServerCert},
+    crypto::ring::Ring,
+    server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
     sign::CertifiedKey,
-    Certificate, RootCertStore, ServerConfig, ServerConnection, Stream,
+    RootCertStore, ServerConfig, ServerConnection, Stream,
 };
 
 use rustls_cng::{
@@ -18,6 +19,8 @@ use rustls_cng::{
 };
 
 const PORT: u16 = 8000;
+
+type RingServerConfig = ServerConfig<Ring>;
 
 #[derive(Parser)]
 #[clap(name = "rustls-server-sample")]
@@ -69,19 +72,18 @@ impl ResolvesServerCert for ServerCertResolver {
 
         // attempt to acquire a full certificate chain
         let chain = context.as_chain_der().ok()?;
-        let certs = chain.into_iter().map(Certificate).collect();
+        let certs = chain.into_iter().map(Into::into).collect();
 
         // return CertifiedKey instance
         Some(Arc::new(CertifiedKey {
             cert: certs,
             key: Arc::new(key),
             ocsp: None,
-            sct_list: None,
         }))
     }
 }
 
-fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
+fn handle_connection(mut stream: TcpStream, config: Arc<RingServerConfig>) -> anyhow::Result<()> {
     println!("Accepted incoming connection from {}", stream.peer_addr()?);
     let mut connection = ServerConnection::new(config)?;
     let mut tls_stream = Stream::new(&mut connection, &mut stream);
@@ -112,7 +114,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
     Ok(())
 }
 
-fn accept(server: TcpListener, config: Arc<ServerConfig>) -> anyhow::Result<()> {
+fn accept(server: TcpListener, config: Arc<RingServerConfig>) -> anyhow::Result<()> {
     for stream in server.incoming().flatten() {
         let config = config.clone();
         std::thread::spawn(|| {
@@ -136,11 +138,15 @@ fn main() -> anyhow::Result<()> {
     let ca_cert = ca_cert_context.first().unwrap();
 
     let mut root_store = RootCertStore::empty();
-    root_store.add(&Certificate(ca_cert.as_der().to_vec()))?;
+    root_store.add(ca_cert.as_der().into())?;
+
+    let verifier = WebPkiClientVerifier::builder(Arc::new(root_store))
+        .build()
+        .unwrap();
 
     let server_config = ServerConfig::builder()
         .with_safe_defaults()
-        .with_client_cert_verifier(Arc::new(AllowAnyAuthenticatedClient::new(root_store)))
+        .with_client_cert_verifier(verifier)
         .with_cert_resolver(Arc::new(ServerCertResolver(store)));
 
     let server = TcpListener::bind(format!("0.0.0.0:{}", PORT))?;

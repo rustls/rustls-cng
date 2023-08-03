@@ -14,10 +14,11 @@ edition = "2021"
 targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]
 
 [dependencies]
-rustls = "0.21"
+rustls = { git = "https://github.com/rustls/rustls" }
 sha2 = "0.10"
 windows-sys = { version = "0.48", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+rustls-pki-types = "0.2"

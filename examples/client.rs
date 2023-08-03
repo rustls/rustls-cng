@@ -7,9 +7,10 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    client::ResolvesClientCert, sign::CertifiedKey, Certificate, ClientConfig, ClientConnection,
-    RootCertStore, SignatureScheme, Stream,
+    client::ResolvesClientCert, crypto::ring::Ring, sign::CertifiedKey, ClientConfig,
+    ClientConnection, RootCertStore, SignatureScheme, Stream,
 };
+use rustls_pki_types::CertificateDer;
 
 use rustls_cng::{
     signer::CngSigningKey,
@@ -18,9 +19,14 @@ use rustls_cng::{
 
 const PORT: u16 = 8000;
 
+type RingClientConfig = ClientConfig<Ring>;
+
 pub struct ClientCertResolver(CertStore, String);
 
-fn get_chain(store: &CertStore, name: &str) -> anyhow::Result<(Vec<Certificate>, CngSigningKey)> {
+fn get_chain(
+    store: &CertStore,
+    name: &str,
+) -> anyhow::Result<(Vec<CertificateDer<'static>>, CngSigningKey)> {
     let contexts = store.find_by_subject_str(name)?;
     let context = contexts
         .first()
@@ -30,7 +36,7 @@ fn get_chain(store: &CertStore, name: &str) -> anyhow::Result<(Vec<Certificate>,
     let chain = context
         .as_chain_der()?
         .into_iter()
-        .map(Certificate)
+        .map(Into::into)
         .collect();
     Ok((chain, signing_key))
 }
@@ -49,7 +55,6 @@ impl ResolvesClientCert for ClientCertResolver {
                     cert: chain,
                     key: Arc::new(signing_key),
                     ocsp: None,
-                    sct_list: None,
                 }));
             }
         }
@@ -114,9 +119,9 @@ fn main() -> anyhow::Result<()> {
     let ca_cert = ca_cert_context.first().unwrap();
 
     let mut root_store = RootCertStore::empty();
-    root_store.add(&Certificate(ca_cert.as_der().to_vec()))?;
+    root_store.add(ca_cert.as_der().into())?;
 
-    let client_config = ClientConfig::builder()
+    let client_config = RingClientConfig::builder()
         .with_safe_defaults()
         .with_root_certificates(root_store)
         .with_client_cert_resolver(Arc::new(ClientCertResolver(

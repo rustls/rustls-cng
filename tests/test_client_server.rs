@@ -11,18 +11,20 @@ mod client {
     };
 
     use rustls::{
-        client::ResolvesClientCert, sign::CertifiedKey, Certificate, ClientConfig,
+        client::ResolvesClientCert, crypto::ring::Ring, sign::CertifiedKey, ClientConfig,
         ClientConnection, RootCertStore, SignatureScheme, Stream,
     };
+    use rustls_pki_types::CertificateDer;
 
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
+    type RingClientConfig = ClientConfig<Ring>;
     pub struct ClientCertResolver(CertStore, String);
 
     fn get_chain(
         store: &CertStore,
         name: &str,
-    ) -> anyhow::Result<(Vec<Certificate>, CngSigningKey)> {
+    ) -> anyhow::Result<(Vec<CertificateDer<'static>>, CngSigningKey)> {
         let contexts = store.find_by_subject_str(name)?;
         let context = contexts
             .first()
@@ -32,7 +34,7 @@ mod client {
         let chain = context
             .as_chain_der()?
             .into_iter()
-            .map(Certificate)
+            .map(Into::into)
             .collect();
         Ok((chain, signing_key))
     }
@@ -50,7 +52,6 @@ mod client {
                         cert: chain,
                         key: Arc::new(signing_key),
                         ocsp: None,
-                        sct_list: None,
                     }));
                 }
             }
@@ -69,9 +70,9 @@ mod client {
         let ca_cert = ca_cert_context.first().unwrap();
 
         let mut root_store = RootCertStore::empty();
-        root_store.add(&Certificate(ca_cert.as_der().to_vec()))?;
+        root_store.add(ca_cert.as_der().into())?;
 
-        let client_config = ClientConfig::builder()
+        let client_config = RingClientConfig::builder()
             .with_safe_defaults()
             .with_root_certificates(root_store)
             .with_client_cert_resolver(Arc::new(ClientCertResolver(
@@ -106,13 +107,15 @@ mod server {
     };
 
     use rustls::{
-        server::{AllowAnyAuthenticatedClient, ClientHello, ResolvesServerCert},
+        crypto::ring::Ring,
+        server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
         sign::CertifiedKey,
-        Certificate, RootCertStore, ServerConfig, ServerConnection, Stream,
+        RootCertStore, ServerConfig, ServerConnection, Stream,
     };
 
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
+    type RingServerConfig = ServerConfig<Ring>;
     pub struct ServerCertResolver(CertStore);
 
     impl ResolvesServerCert for ServerCertResolver {
@@ -127,18 +130,20 @@ mod server {
             })?;
 
             let chain = context.as_chain_der().ok()?;
-            let certs = chain.into_iter().map(Certificate).collect();
+            let certs = chain.into_iter().map(Into::into).collect();
 
             Some(Arc::new(CertifiedKey {
                 cert: certs,
                 key: Arc::new(key),
                 ocsp: None,
-                sct_list: None,
             }))
         }
     }
 
-    fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
+    fn handle_connection(
+        mut stream: TcpStream,
+        config: Arc<RingServerConfig>,
+    ) -> anyhow::Result<()> {
         let mut connection = ServerConnection::new(config)?;
         let mut tls_stream = Stream::new(&mut connection, &mut stream);
 
@@ -159,11 +164,15 @@ mod server {
         let ca_cert = ca_cert_context.first().unwrap();
 
         let mut root_store = RootCertStore::empty();
-        root_store.add(&Certificate(ca_cert.as_der().to_vec()))?;
+        root_store.add(ca_cert.as_der().into())?;
 
-        let server_config = ServerConfig::builder()
+        let verifier = WebPkiClientVerifier::builder(Arc::new(root_store))
+            .build()
+            .unwrap();
+
+        let server_config = RingServerConfig::builder()
             .with_safe_defaults()
-            .with_client_cert_verifier(Arc::new(AllowAnyAuthenticatedClient::new(root_store)))
+            .with_client_cert_verifier(verifier)
             .with_cert_resolver(Arc::new(ServerCertResolver(store)));
 
         let server = TcpListener::bind("127.0.0.1:0")?;
