@@ -9,7 +9,7 @@ use windows_sys::{
 
 use crate::error::CngError;
 
-unsafe fn utf16_to_string(src: *const u16) -> String {
+unsafe fn utf16z_to_string(src: *const u16) -> String {
     let mut i = 0;
     while *src.offset(i) != 0 {
         i += 1;
@@ -91,16 +91,11 @@ impl NCryptKey {
         self.0.inner()
     }
 
-    /// Return NCRYPT_HANDLE
-    pub fn as_ncrypt_handle(&self) -> NCRYPT_HANDLE {
-        self.0.inner()
-    }
-
     fn get_string_property(&self, property: PCWSTR) -> Result<String, CngError> {
         let mut result: u32 = 0;
         unsafe {
             CngError::from_hresult(NCryptGetProperty(
-                self.as_ncrypt_handle(),
+                self.inner(),
                 property,
                 ptr::null_mut(),
                 0,
@@ -111,7 +106,7 @@ impl NCryptKey {
             let mut prop_value = vec![0u8; result as usize];
 
             CngError::from_hresult(NCryptGetProperty(
-                self.as_ncrypt_handle(),
+                self.inner(),
                 property,
                 prop_value.as_mut_ptr(),
                 prop_value.len() as u32,
@@ -119,7 +114,7 @@ impl NCryptKey {
                 OBJECT_SECURITY_INFORMATION::default(),
             ))?;
 
-            Ok(utf16_to_string(prop_value.as_ptr() as _))
+            Ok(utf16z_to_string(prop_value.as_ptr() as _))
         }
     }
 
@@ -129,7 +124,7 @@ impl NCryptKey {
         let mut result: u32 = 0;
         unsafe {
             CngError::from_hresult(NCryptGetProperty(
-                self.as_ncrypt_handle(),
+                self.inner(),
                 NCRYPT_LENGTH_PROPERTY,
                 bits.as_mut_ptr(),
                 4,
@@ -155,7 +150,6 @@ impl NCryptKey {
 
     /// Sign a given digest with this key. The `hash` slice must be 32, 48 or 64 bytes long.
     pub fn sign(&self, hash: &[u8], padding: SignaturePadding) -> Result<Vec<u8>, CngError> {
-        let mut result = 0;
         unsafe {
             let hash_alg = match hash.len() {
                 32 => BCRYPT_SHA256_ALGORITHM,
@@ -163,20 +157,26 @@ impl NCryptKey {
                 64 => BCRYPT_SHA512_ALGORITHM,
                 _ => return Err(CngError::InvalidHashLength),
             };
-            let mut pkcs1 = std::mem::zeroed::<BCRYPT_PKCS1_PADDING_INFO>();
-            let mut pss = std::mem::zeroed::<BCRYPT_PSS_PADDING_INFO>();
+
+            let pkcs1;
+            let pss;
+
             let (info, flag) = match padding {
                 SignaturePadding::Pkcs1 => {
-                    pkcs1.pszAlgId = hash_alg;
+                    pkcs1 = BCRYPT_PKCS1_PADDING_INFO { pszAlgId: hash_alg };
                     (&pkcs1 as *const _ as *const c_void, BCRYPT_PAD_PKCS1)
                 }
                 SignaturePadding::Pss => {
-                    pss.pszAlgId = hash_alg;
-                    pss.cbSalt = hash.len() as u32;
+                    pss = BCRYPT_PSS_PADDING_INFO {
+                        pszAlgId: hash_alg,
+                        cbSalt: hash.len() as u32,
+                    };
                     (&pss as *const _ as *const c_void, BCRYPT_PAD_PSS)
                 }
                 SignaturePadding::None => (ptr::null(), NCRYPT_FLAGS::default()),
             };
+
+            let mut result = 0;
 
             CngError::from_hresult(NCryptSignHash(
                 self.inner(),
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     pub fn test_utf16_conversion() {
         let data = [b'r', 0, b'u', 0, b's', 0, b't', 0, b'l', 0, b's', 0, 0, 0];
-        let s = unsafe { super::utf16_to_string(data.as_ptr() as _) };
+        let s = unsafe { super::utf16z_to_string(data.as_ptr() as _) };
         assert_eq!(s, "rustls");
     }
 }
