@@ -9,14 +9,6 @@ use windows_sys::{
 
 use crate::error::CngError;
 
-unsafe fn utf16z_to_string(src: *const u16) -> String {
-    let mut i = 0;
-    while *src.offset(i) != 0 {
-        i += 1;
-    }
-    String::from_utf16_lossy(std::slice::from_raw_parts(src, i as _))
-}
-
 /// Algorithm group of the CNG private key
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
 pub enum AlgorithmGroup {
@@ -114,7 +106,10 @@ impl NCryptKey {
                 OBJECT_SECURITY_INFORMATION::default(),
             ))?;
 
-            Ok(utf16z_to_string(prop_value.as_ptr() as _))
+            Ok(String::from_utf16_lossy(std::slice::from_raw_parts(
+                prop_value.as_ptr() as *const u16,
+                prop_value.len() / 2 - 1,
+            )))
         }
     }
 
@@ -204,15 +199,5 @@ impl NCryptKey {
 
             Ok(signature)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    pub fn test_utf16_conversion() {
-        let data = [b'r', 0, b'u', 0, b's', 0, b't', 0, b'l', 0, b's', 0, 0, 0];
-        let s = unsafe { super::utf16z_to_string(data.as_ptr() as _) };
-        assert_eq!(s, "rustls");
     }
 }
