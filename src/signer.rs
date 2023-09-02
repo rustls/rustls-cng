@@ -18,22 +18,22 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
 
     let length = data.len() + 2 + 4 + r_sign.len() + s_sign.len();
 
-    let mut result = Vec::with_capacity(length);
+    let mut buf = Vec::with_capacity(length);
 
-    result.push(0x30); // SEQUENCE
-    result.push((length - 2) as u8);
+    buf.push(0x30); // SEQUENCE
+    buf.push((length - 2) as u8);
 
-    result.push(0x02); // INTEGER
-    result.push((r.len() + r_sign.len()) as u8);
-    result.extend(r_sign);
-    result.extend(r);
+    buf.push(0x02); // INTEGER
+    buf.push((r.len() + r_sign.len()) as u8);
+    buf.extend(r_sign);
+    buf.extend(r);
 
-    result.push(0x02); // INTEGER
-    result.push((s.len() + s_sign.len()) as u8);
-    result.extend(s_sign);
-    result.extend(s);
+    buf.push(0x02); // INTEGER
+    buf.push((s.len() + s_sign.len()) as u8);
+    buf.extend(s_sign);
+    buf.extend(s);
 
-    result
+    buf
 }
 
 /// Custom implementation of `rustls` SigningKey trait
@@ -185,21 +185,21 @@ impl SigningKey for CngSigningKey {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_p1363_to_asn1() {
+    fn test_p1363_to_der() {
         let p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
-        let asn1 = super::p1363_to_der(&p1363);
+        let der = super::p1363_to_der(&p1363);
         assert_eq!(
-            asn1,
+            der,
             [0x30, 0x0c, 0x02, 0x04, 1, 2, 3, 4, 0x02, 0x04, 5, 6, 7, 8]
         )
     }
 
     #[test]
-    fn test_p1363_to_asn1_signed() {
+    fn test_p1363_to_der_signed() {
         let p1363 = [0x81, 2, 3, 4, 0x85, 6, 7, 8];
-        let asn1 = super::p1363_to_der(&p1363);
+        let der = super::p1363_to_der(&p1363);
         assert_eq!(
-            asn1,
+            der,
             [0x30, 0x0e, 0x02, 0x05, 0, 0x81, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8]
         )
     }
