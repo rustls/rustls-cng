@@ -17,7 +17,6 @@ targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]
 rustls = "0.21"
 sha2 = "0.10"
 windows-sys = { version = "0.48", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
-thiserror = "1"
 
 [dev-dependencies]
 anyhow = "1"

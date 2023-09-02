@@ -7,7 +7,7 @@ use windows_sys::{
     Win32::Security::{Cryptography::*, OBJECT_SECURITY_INFORMATION},
 };
 
-use crate::error::CngError;
+use crate::{error::CngError, Result};
 
 /// Algorithm group of the CNG private key
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
@@ -83,7 +83,7 @@ impl NCryptKey {
         self.0.inner()
     }
 
-    fn get_string_property(&self, property: PCWSTR) -> Result<String, CngError> {
+    fn get_string_property(&self, property: PCWSTR) -> Result<String> {
         let mut result: u32 = 0;
         unsafe {
             CngError::from_hresult(NCryptGetProperty(
@@ -114,7 +114,7 @@ impl NCryptKey {
     }
 
     /// Return a number of bits in the key material
-    pub fn bits(&self) -> Result<u32, CngError> {
+    pub fn bits(&self) -> Result<u32> {
         let mut bits = [0u8; 4];
         let mut result: u32 = 0;
         unsafe {
@@ -132,19 +132,19 @@ impl NCryptKey {
     }
 
     /// Return algorithm group of the key
-    pub fn algorithm_group(&self) -> Result<AlgorithmGroup, CngError> {
+    pub fn algorithm_group(&self) -> Result<AlgorithmGroup> {
         Ok(AlgorithmGroup::from_str(
             &self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)?,
         ))
     }
 
     /// Return algorithm name of the key
-    pub fn algorithm(&self) -> Result<String, CngError> {
+    pub fn algorithm(&self) -> Result<String> {
         self.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
     }
 
     /// Sign a given digest with this key. The `hash` slice must be 32, 48 or 64 bytes long.
-    pub fn sign(&self, hash: &[u8], padding: SignaturePadding) -> Result<Vec<u8>, CngError> {
+    pub fn sign(&self, hash: &[u8], padding: SignaturePadding) -> Result<Vec<u8>> {
         unsafe {
             let hash_alg = match hash.len() {
                 32 => BCRYPT_SHA256_ALGORITHM,

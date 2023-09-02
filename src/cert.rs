@@ -4,7 +4,7 @@ use std::{mem, ptr, slice, sync::Arc};
 
 use windows_sys::Win32::Security::Cryptography::*;
 
-use crate::{error::CngError, key::NCryptKey};
+use crate::{error::CngError, key::NCryptKey, Result};
 
 #[derive(Debug)]
 enum InnerContext {
@@ -56,7 +56,7 @@ impl CertContext {
     }
 
     /// Attempt to silently acquire a CNG private key from this context.
-    pub fn acquire_key(&self) -> Result<NCryptKey, CngError> {
+    pub fn acquire_key(&self) -> Result<NCryptKey> {
         let mut handle = HCRYPTPROV_OR_NCRYPT_KEY_HANDLE::default();
         let mut key_spec = CERT_KEY_SPEC::default();
         let flags = CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG | CRYPT_ACQUIRE_SILENT_FLAG;
@@ -88,7 +88,7 @@ impl CertContext {
     }
 
     /// Return DER-encoded X.509 certificate chain
-    pub fn as_chain_der(&self) -> Result<Vec<Vec<u8>>, CngError> {
+    pub fn as_chain_der(&self) -> Result<Vec<Vec<u8>>> {
         unsafe {
             let param = CERT_CHAIN_PARA {
                 cbSize: mem::size_of::<CERT_CHAIN_PARA>() as u32,
@@ -127,7 +127,7 @@ impl CertContext {
 
                 Ok(chain)
             } else {
-                Err(CngError::InvalidCertificateChain)
+                Err(CngError::from_win32_error())
             }
         }
     }

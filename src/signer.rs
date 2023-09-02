@@ -6,31 +6,33 @@ use rustls::{
 };
 use sha2::digest::Digest;
 
-use crate::{
-    error::CngError,
-    key::{AlgorithmGroup, NCryptKey, SignaturePadding},
-};
+use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
 
-// Convert IEEE-P1363 signature format to ASN.1
+// Convert IEEE-P1363 signature format to DER encoding.
+// We assume the length of the r and s parts is less than 256 bytes.
 fn p1363_to_der(data: &[u8]) -> Vec<u8> {
-    let mut result = Vec::new();
-
     let (r, s) = data.split_at(data.len() / 2);
 
-    result.push(0x30); // SEQUENCE
-    result.push(0); // length, filled later
+    let r_sign: &[u8] = if r[0] >= 0x80 { &[0] } else { &[] };
+    let s_sign: &[u8] = if s[0] >= 0x80 { &[0] } else { &[] };
 
-    // encode each number as unsigned integer
-    for num in [r, s] {
-        let signed = num[0] >= 0x80;
-        result.push(0x02); // INTEGER
-        result.push(num.len() as u8 + signed as u8); // length
-        if signed {
-            result.push(0);
-        }
-        result.extend(num);
-    }
-    result[1] = (result.len() - 2) as u8;
+    let length = data.len() + 2 + 4 + r_sign.len() + s_sign.len();
+
+    let mut result = Vec::with_capacity(length);
+
+    result.push(0x30); // SEQUENCE
+    result.push((length - 2) as u8);
+
+    result.push(0x02); // INTEGER
+    result.push((r.len() + r_sign.len()) as u8);
+    result.extend(r_sign);
+    result.extend(r);
+
+    result.push(0x02); // INTEGER
+    result.push((s.len() + s_sign.len()) as u8);
+    result.extend(s_sign);
+    result.extend(s);
+
     result
 }
 
@@ -44,17 +46,14 @@ pub struct CngSigningKey {
 
 impl CngSigningKey {
     /// Create instance from the CNG key
-    pub fn new(key: NCryptKey) -> Result<Self, CngError> {
+    pub fn new(key: NCryptKey) -> crate::Result<Self> {
         let group = key.algorithm_group()?;
         let bits = key.bits()?;
-        match group {
-            AlgorithmGroup::Other(_) => Err(CngError::UnsupportedKeyAlgorithm),
-            group => Ok(Self {
-                key,
-                algorithm_group: group,
-                bits,
-            }),
-        }
+        Ok(Self {
+            key,
+            algorithm_group: group,
+            bits,
+        })
     }
 
     /// Return a reference to the CNG key
@@ -148,8 +147,7 @@ impl Signer for CngSigner {
             .map_err(|e| Error::General(e.to_string()))?;
 
         if padding == SignaturePadding::None {
-            // For ECDSA keys Windows produces IEEE-P1363 signatures.
-            // Convert them to ASN.1
+            // For ECDSA keys Windows produces IEEE-P1363 signatures which must be converted to DER format
             Ok(p1363_to_der(&signature))
         } else {
             Ok(signature)
@@ -198,11 +196,11 @@ mod tests {
 
     #[test]
     fn test_p1363_to_asn1_signed() {
-        let p1363 = [1, 2, 3, 4, 0x85, 6, 7, 8];
+        let p1363 = [0x81, 2, 3, 4, 0x85, 6, 7, 8];
         let asn1 = super::p1363_to_der(&p1363);
         assert_eq!(
             asn1,
-            [0x30, 0x0d, 0x02, 0x04, 1, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8]
+            [0x30, 0x0e, 0x02, 0x05, 0, 0x81, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8]
         )
     }
 }

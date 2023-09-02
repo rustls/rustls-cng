@@ -4,7 +4,7 @@ use std::{os::raw::c_void, ptr};
 
 use windows_sys::Win32::Security::Cryptography::*;
 
-use crate::{cert::CertContext, error::CngError};
+use crate::{cert::CertContext, error::CngError, Result};
 
 const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE = PKCS_7_ASN_ENCODING | X509_ASN_ENCODING;
 
@@ -52,7 +52,7 @@ impl CertStore {
     }
 
     /// Open certificate store of the given type and name
-    pub fn open(store_type: CertStoreType, store_name: &str) -> Result<CertStore, CngError> {
+    pub fn open(store_type: CertStoreType, store_name: &str) -> Result<CertStore> {
         unsafe {
             let store_name = utf16z!(store_name);
             let handle = CertOpenStore(
@@ -71,7 +71,7 @@ impl CertStore {
     }
 
     /// Import certificate store from PKCS12 file
-    pub fn from_pkcs12(data: &[u8], password: &str) -> Result<CertStore, CngError> {
+    pub fn from_pkcs12(data: &[u8], password: &str) -> Result<CertStore> {
         unsafe {
             let blob = CRYPT_INTEGER_BLOB {
                 cbData: data.len() as u32,
@@ -93,7 +93,7 @@ impl CertStore {
     }
 
     /// Find list of certificates matching the subject substring
-    pub fn find_by_subject_str<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
+    pub fn find_by_subject_str<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
     {
@@ -101,7 +101,7 @@ impl CertStore {
     }
 
     /// Find list of certificates matching the exact subject name
-    pub fn find_by_subject_name<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
+    pub fn find_by_subject_name<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
     {
@@ -109,7 +109,7 @@ impl CertStore {
     }
 
     /// Find list of certificates matching the issuer substring
-    pub fn find_by_issuer_str<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
+    pub fn find_by_issuer_str<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
     {
@@ -117,7 +117,7 @@ impl CertStore {
     }
 
     /// Find list of certificates matching the exact issuer name
-    pub fn find_by_issuer_name<S>(&self, subject: S) -> Result<Vec<CertContext>, CngError>
+    pub fn find_by_issuer_name<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
     {
@@ -125,7 +125,7 @@ impl CertStore {
     }
 
     /// Find list of certificates matching the SHA1 hash
-    pub fn find_by_sha1<D>(&self, hash: D) -> Result<Vec<CertContext>, CngError>
+    pub fn find_by_sha1<D>(&self, hash: D) -> Result<Vec<CertContext>>
     where
         D: AsRef<[u8]>,
     {
@@ -133,52 +133,42 @@ impl CertStore {
             cbData: hash.as_ref().len() as u32,
             pbData: hash.as_ref().as_ptr() as _,
         };
-        self.do_find(CERT_FIND_HASH, &hash_blob as *const _ as _)
+        unsafe { self.do_find(CERT_FIND_HASH, &hash_blob as *const _ as _) }
     }
 
     /// Get all certificates
-    pub fn find_all(&self) -> Result<Vec<CertContext>, CngError> {
-        self.do_find(CERT_FIND_ANY, ptr::null())
+    pub fn find_all(&self) -> Result<Vec<CertContext>> {
+        unsafe { self.do_find(CERT_FIND_ANY, ptr::null()) }
     }
 
-    fn do_find(
+    unsafe fn do_find(
         &self,
         flags: CERT_FIND_FLAGS,
         find_param: *const c_void,
-    ) -> Result<Vec<CertContext>, CngError> {
+    ) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
         let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
 
         loop {
-            cert = unsafe {
-                CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param, cert)
-            };
+            cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param, cert);
             if cert.is_null() {
                 break;
             } else {
                 // increase refcount because it will be released by next call to CertFindCertificateInStore
-                let cert = unsafe { CertDuplicateCertificateContext(cert) };
+                let cert = CertDuplicateCertificateContext(cert);
                 certs.push(CertContext::new_owned(cert))
             }
         }
         Ok(certs)
     }
 
-    fn find_by_str(
-        &self,
-        pattern: &str,
-        flags: CERT_FIND_FLAGS,
-    ) -> Result<Vec<CertContext>, CngError> {
+    fn find_by_str(&self, pattern: &str, flags: CERT_FIND_FLAGS) -> Result<Vec<CertContext>> {
         let u16pattern = utf16z!(pattern);
-        self.do_find(flags, u16pattern.as_ptr() as _)
+        unsafe { self.do_find(flags, u16pattern.as_ptr() as _) }
     }
 
-    fn find_by_name(
-        &self,
-        field: &str,
-        flags: CERT_FIND_FLAGS,
-    ) -> Result<Vec<CertContext>, CngError> {
+    fn find_by_name(&self, field: &str, flags: CERT_FIND_FLAGS) -> Result<Vec<CertContext>> {
         let mut name_size = 0;
 
         unsafe {
