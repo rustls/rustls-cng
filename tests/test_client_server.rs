@@ -43,7 +43,6 @@ mod client {
             _acceptable_issuers: &[&[u8]],
             sigschemes: &[SignatureScheme],
         ) -> Option<Arc<CertifiedKey>> {
-            println!("Server sig schemes: {:#?}", sigschemes);
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
             for scheme in signing_key.supported_schemes() {
                 if sigschemes.contains(scheme) {
@@ -91,7 +90,6 @@ mod client {
 
         let mut buf = [0u8; 4];
         tls_stream.read_exact(&mut buf)?;
-        println!("{}", String::from_utf8_lossy(&buf));
         assert_eq!(&buf, b"pong");
 
         tls_stream.sock.shutdown(Shutdown::Read)?;
@@ -119,7 +117,6 @@ mod server {
 
     impl ResolvesServerCert for ServerCertResolver {
         fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
-            println!("Client hello server name: {:?}", client_hello.server_name());
             let name = client_hello.server_name()?;
 
             let contexts = self.0.find_by_subject_str(name).ok()?;
@@ -128,9 +125,6 @@ mod server {
                 let key = ctx.acquire_key().ok()?;
                 CngSigningKey::new(key).ok().map(|key| (ctx, key))
             })?;
-
-            println!("Key alg group: {:?}", key.key().algorithm_group());
-            println!("Key alg: {:?}", key.key().algorithm());
 
             let chain = context.as_chain_der().ok()?;
             let certs = chain.into_iter().map(Certificate).collect();
@@ -145,28 +139,11 @@ mod server {
     }
 
     fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
-        println!("Accepted incoming connection from {}", stream.peer_addr()?);
         let mut connection = ServerConnection::new(config)?;
         let mut tls_stream = Stream::new(&mut connection, &mut stream);
 
-        if tls_stream.conn.is_handshaking() {
-            tls_stream.conn.complete_io(tls_stream.sock)?;
-        }
-
-        println!("Protocol version: {:?}", tls_stream.conn.protocol_version());
-        println!(
-            "Cipher suite: {:?}",
-            tls_stream.conn.negotiated_cipher_suite()
-        );
-        println!("SNI host name: {:?}", tls_stream.conn.server_name());
-        println!(
-            "Peer certificates: {:?}",
-            tls_stream.conn.peer_certificates().map(|c| c.len())
-        );
-
         let mut buf = [0u8; 4];
         tls_stream.read_exact(&mut buf)?;
-        println!("{}", String::from_utf8_lossy(&buf));
         assert_eq!(&buf, b"ping");
         tls_stream.sock.shutdown(Shutdown::Read)?;
         tls_stream.write_all(b"pong")?;
