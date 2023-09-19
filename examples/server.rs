@@ -7,7 +7,6 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    crypto::ring::Ring,
     server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
     sign::CertifiedKey,
     RootCertStore, ServerConfig, ServerConnection, Stream,
@@ -19,8 +18,6 @@ use rustls_cng::{
 };
 
 const PORT: u16 = 8000;
-
-type RingServerConfig = ServerConfig<Ring>;
 
 #[derive(Parser)]
 #[clap(name = "rustls-server-sample")]
@@ -83,7 +80,7 @@ impl ResolvesServerCert for ServerCertResolver {
     }
 }
 
-fn handle_connection(mut stream: TcpStream, config: Arc<RingServerConfig>) -> anyhow::Result<()> {
+fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
     println!("Accepted incoming connection from {}", stream.peer_addr()?);
     let mut connection = ServerConnection::new(config)?;
     let mut tls_stream = Stream::new(&mut connection, &mut stream);
@@ -114,7 +111,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<RingServerConfig>) -> an
     Ok(())
 }
 
-fn accept(server: TcpListener, config: Arc<RingServerConfig>) -> anyhow::Result<()> {
+fn accept(server: TcpListener, config: Arc<ServerConfig>) -> anyhow::Result<()> {
     for stream in server.incoming().flatten() {
         let config = config.clone();
         std::thread::spawn(|| {

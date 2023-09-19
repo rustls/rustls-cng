@@ -7,8 +7,8 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    client::ResolvesClientCert, crypto::ring::Ring, sign::CertifiedKey, ClientConfig,
-    ClientConnection, RootCertStore, SignatureScheme, Stream,
+    client::ResolvesClientCert, sign::CertifiedKey, ClientConfig, ClientConnection, RootCertStore,
+    SignatureScheme, Stream,
 };
 use rustls_pki_types::CertificateDer;
 
@@ -18,8 +18,6 @@ use rustls_cng::{
 };
 
 const PORT: u16 = 8000;
-
-type RingClientConfig = ClientConfig<Ring>;
 
 pub struct ClientCertResolver(CertStore, String);
 
@@ -121,7 +119,7 @@ fn main() -> anyhow::Result<()> {
     let mut root_store = RootCertStore::empty();
     root_store.add(ca_cert.as_der().into())?;
 
-    let client_config = RingClientConfig::builder()
+    let client_config = ClientConfig::builder()
         .with_safe_defaults()
         .with_root_certificates(root_store)
         .with_client_cert_resolver(Arc::new(ClientCertResolver(
