@@ -7,7 +7,7 @@ Rationale: In many situations, it is required to use non-exportable private cert
  from the Windows certificate store instead of the external PKCS8 file.
  `rustls-cng` can use such chains in the `rustls` context.
 
-Supported key/certificate types: **RSA**, **ECDSA/ECDH** (secp256r1 and secp384r1 curves).
+Supported key/certificate types: **RSA**, **ECDSA/ECDH**. Supported elliptic curves: secp256r1 (prime256v1), secp384r1.
 
 ## Documentation
 
