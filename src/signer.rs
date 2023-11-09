@@ -92,6 +92,7 @@ impl CngSigningKey {
     }
 }
 
+#[derive(Debug)]
 struct CngSigner {
     key: NCryptKey,
     scheme: SignatureScheme,

@@ -18,6 +18,7 @@ mod client {
 
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
+    #[derive(Debug)]
     pub struct ClientCertResolver(CertStore, String);
 
     fn get_chain(
@@ -113,6 +114,7 @@ mod server {
 
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
+    #[derive(Debug)]
     pub struct ServerCertResolver(CertStore);
 
     impl ResolvesServerCert for ServerCertResolver {

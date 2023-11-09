@@ -48,6 +48,7 @@ struct AppParams {
     password: String,
 }
 
+#[derive(Debug)]
 pub struct ServerCertResolver(CertStore);
 
 impl ResolvesServerCert for ServerCertResolver {

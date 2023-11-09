@@ -19,6 +19,7 @@ use rustls_cng::{
 
 const PORT: u16 = 8000;
 
+#[derive(Debug)]
 pub struct ClientCertResolver(CertStore, String);
 
 fn get_chain(
