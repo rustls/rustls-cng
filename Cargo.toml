@@ -16,7 +16,7 @@ targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]
 [dependencies]
 rustls = { git = "https://github.com/rustls/rustls" }
 sha2 = "0.10"
-windows-sys = { version = "0.48", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
 anyhow = "1"
