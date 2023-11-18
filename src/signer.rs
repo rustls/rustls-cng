@@ -1,8 +1,10 @@
 //! SigningKey implementation
 
+use std::sync::Arc;
+
 use rustls::{
     sign::{Signer, SigningKey},
-    Error, SignatureAlgorithm, SignatureScheme,
+    Error, OtherError, SignatureAlgorithm, SignatureScheme,
 };
 use sha2::digest::Digest;
 
@@ -133,7 +135,7 @@ impl CngSigner {
                 sha2::Sha384::digest(message).to_vec(),
                 SignaturePadding::None,
             ),
-            _ => return Err(Error::General("Unsupported signature scheme!".to_owned())),
+            _ => return Err(Error::General("Unsupported signature scheme".to_owned())),
         };
         Ok((hash, padding))
     }
@@ -145,7 +147,7 @@ impl Signer for CngSigner {
         let signature = self
             .key
             .sign(&hash, padding)
-            .map_err(|e| Error::General(e.to_string()))?;
+            .map_err(|e| Error::Other(OtherError(Arc::new(e))))?;
 
         if padding == SignaturePadding::None {
             // For ECDSA keys Windows produces IEEE-P1363 signatures which must be converted to DER format
@@ -178,7 +180,7 @@ impl SigningKey for CngSigningKey {
         match self.algorithm_group {
             AlgorithmGroup::Rsa => SignatureAlgorithm::RSA,
             AlgorithmGroup::Ecdsa | AlgorithmGroup::Ecdh => SignatureAlgorithm::ECDSA,
-            _ => panic!("Unexpected algorithm group!"),
+            _ => panic!("Unexpected algorithm group"),
         }
     }
 }
