@@ -1,6 +1,6 @@
 //! CNG key wrapper
 
-use std::{os::raw::c_void, ptr, sync::Arc};
+use std::{os::raw::c_void, ptr, str::FromStr, sync::Arc};
 
 use windows_sys::{
     core::PCWSTR,
@@ -15,16 +15,17 @@ pub enum AlgorithmGroup {
     Rsa,
     Ecdsa,
     Ecdh,
-    Other(String),
 }
 
-impl AlgorithmGroup {
-    fn from_str(s: &str) -> Self {
+impl FromStr for AlgorithmGroup {
+    type Err = CngError;
+
+    fn from_str(s: &str) -> Result<Self> {
         match s {
-            "RSA" => Self::Rsa,
-            "ECDSA" => Self::Ecdsa,
-            "ECDH" => Self::Ecdh,
-            other => Self::Other(other.to_owned()),
+            "RSA" => Ok(Self::Rsa),
+            "ECDSA" => Ok(Self::Ecdsa),
+            "ECDH" => Ok(Self::Ecdh),
+            _ => Err(CngError::UnsupportedKeyAlgorithmGroup),
         }
     }
 }
@@ -133,9 +134,8 @@ impl NCryptKey {
 
     /// Return algorithm group of the key
     pub fn algorithm_group(&self) -> Result<AlgorithmGroup> {
-        Ok(AlgorithmGroup::from_str(
-            &self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)?,
-        ))
+        self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)?
+            .parse()
     }
 
     /// Return algorithm name of the key

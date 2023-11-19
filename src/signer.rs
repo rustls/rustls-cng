@@ -89,7 +89,6 @@ impl CngSigningKey {
                 384 => &[SignatureScheme::ECDSA_NISTP384_SHA384],
                 _ => &[],
             },
-            _ => &[],
         }
     }
 }
@@ -180,7 +179,6 @@ impl SigningKey for CngSigningKey {
         match self.algorithm_group {
             AlgorithmGroup::Rsa => SignatureAlgorithm::RSA,
             AlgorithmGroup::Ecdsa | AlgorithmGroup::Ecdh => SignatureAlgorithm::ECDSA,
-            _ => panic!("Unexpected algorithm group"),
         }
     }
 }

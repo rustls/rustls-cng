@@ -12,6 +12,7 @@ use windows_sys::{
 #[non_exhaustive]
 pub enum CngError {
     InvalidHashLength,
+    UnsupportedKeyAlgorithmGroup,
     WindowsError(u32),
 }
 
@@ -19,6 +20,7 @@ impl fmt::Display for CngError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CngError::InvalidHashLength => write!(f, "Invalid hash length"),
+            CngError::UnsupportedKeyAlgorithmGroup => write!(f, "Unsupported key algorithm group"),
             CngError::WindowsError(code) => write!(f, "Error code {:08x}", code),
         }
     }
