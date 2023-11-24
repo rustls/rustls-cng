@@ -10,7 +10,7 @@ use rustls::{
     client::ResolvesClientCert, sign::CertifiedKey, ClientConfig, ClientConnection, RootCertStore,
     SignatureScheme, Stream,
 };
-use rustls_pki_types::CertificateDer;
+use rustls_pki_types::{CertificateDer, ServerName};
 
 use rustls_cng::{
     signer::CngSigningKey,
@@ -128,10 +128,8 @@ fn main() -> anyhow::Result<()> {
             params.client_cert.clone(),
         )));
 
-    let mut connection = ClientConnection::new(
-        Arc::new(client_config),
-        params.server_name.as_str().try_into()?,
-    )?;
+    let server_name = ServerName::try_from(params.server_name.as_str())?.to_owned();
+    let mut connection = ClientConnection::new(Arc::new(client_config), server_name)?;
     let mut client = TcpStream::connect(format!("{}:{}", params.server_address, PORT))?;
 
     let mut tls_stream = Stream::new(&mut connection, &mut client);
