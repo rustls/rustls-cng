@@ -143,7 +143,6 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
 
     let server_config = ServerConfig::builder()
-        .with_safe_defaults()
         .with_client_cert_verifier(verifier)
         .with_cert_resolver(Arc::new(ServerCertResolver(store)));
 

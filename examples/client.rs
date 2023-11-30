@@ -121,7 +121,6 @@ fn main() -> anyhow::Result<()> {
     root_store.add(ca_cert.as_der().into())?;
 
     let client_config = ClientConfig::builder()
-        .with_safe_defaults()
         .with_root_certificates(root_store)
         .with_client_cert_resolver(Arc::new(ClientCertResolver(
             store,
