@@ -1,4 +1,4 @@
-var sourcesIndex = JSON.parse('{\
+var srcIndex = JSON.parse('{\
 "rustls_cng":["",[],["cert.rs","error.rs","key.rs","lib.rs","signer.rs","store.rs"]]\
 }');
-createSourceSidebar();
+createSrcSidebar();

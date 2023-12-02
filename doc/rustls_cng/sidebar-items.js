@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["cert","error","key","signer","store"]};
+window.SIDEBAR_ITEMS = {"mod":["cert","error","key","signer","store"],"type":["Result"]};
