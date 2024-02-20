@@ -14,7 +14,7 @@ edition = "2021"
 targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]
 
 [dependencies]
-rustls = { git = "https://github.com/rustls/rustls" }
+rustls = { git = "https://github.com/rustls/rustls", default-features = false, features = ["ring", "tls12"] }
 sha2 = "0.10"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
