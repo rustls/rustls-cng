@@ -17,6 +17,7 @@ targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]
 rustls = { git = "https://github.com/rustls/rustls.git", default-features = false, features = ["std"] }
 sha2 = "0.10"
 windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+aws-lc-rs = { version = "1", optional = true }
 
 [dev-dependencies]
 anyhow = "1"
@@ -27,6 +28,7 @@ rustls-pki-types = "1"
 default = ["logging", "tls12", "aws-lc-rs"]
 aws-lc-rs = ["rustls/aws_lc_rs"]
 early-data = []
+aws-lc-bindgen = ["aws-lc-rs/bindgen"]
 fips = ["rustls/fips"]
 logging = ["rustls/logging"]
 ring = ["rustls/ring"]
