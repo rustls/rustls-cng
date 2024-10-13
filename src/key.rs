@@ -143,6 +143,23 @@ impl NCryptKey {
         self.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
     }
 
+    /// Set a pin code for hardware tokens
+    pub fn set_pin(&self, pin: &str) -> Result<()> {
+        let pin_val = pin.encode_utf16().chain([0]).collect::<Vec<u16>>();
+
+        let result = unsafe {
+            NCryptSetProperty(
+                self.inner(),
+                NCRYPT_PIN_PROPERTY,
+                pin_val.as_ptr() as *const u8,
+                pin.len() as u32,
+                NCRYPT_FLAGS::default(),
+            )
+        };
+
+        CngError::from_hresult(result)
+    }
+
     /// Sign a given digest with this key. The `hash` slice must be 32, 48 or 64 bytes long.
     pub fn sign(&self, hash: &[u8], padding: SignaturePadding) -> Result<Vec<u8>> {
         unsafe {

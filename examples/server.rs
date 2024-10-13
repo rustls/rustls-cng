@@ -42,14 +42,16 @@ struct AppParams {
         action,
         short = 'p',
         long = "password",
-        help = "Keystore password",
-        default_value = "changeit"
+        help = "Keystore password or card pin"
     )]
-    password: String,
+    password: Option<String>,
 }
 
 #[derive(Debug)]
-pub struct ServerCertResolver(CertStore);
+pub struct ServerCertResolver {
+    store: CertStore,
+    pin: Option<String>,
+}
 
 impl ResolvesServerCert for ServerCertResolver {
     fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
@@ -57,11 +59,14 @@ impl ResolvesServerCert for ServerCertResolver {
         let name = client_hello.server_name()?;
 
         // look up certificate by subject
-        let contexts = self.0.find_by_subject_str(name).ok()?;
+        let contexts = self.store.find_by_subject_str(name).ok()?;
 
         // attempt to acquire a private key and construct CngSigningKey
         let (context, key) = contexts.into_iter().find_map(|ctx| {
             let key = ctx.acquire_key().ok()?;
+            if let Some(ref pin) = self.pin {
+                key.set_pin(pin).ok()?;
+            }
             CngSigningKey::new(key).ok().map(|key| (ctx, key))
         })?;
 
@@ -127,9 +132,9 @@ fn main() -> anyhow::Result<()> {
 
     let store = if let Some(ref keystore) = params.keystore {
         let data = std::fs::read(keystore)?;
-        CertStore::from_pkcs12(&data, &params.password)?
+        CertStore::from_pkcs12(&data, params.password.as_deref().unwrap_or_default())?
     } else {
-        CertStore::open(CertStoreType::LocalMachine, "my")?
+        CertStore::open(CertStoreType::CurrentUser, "my")?
     };
 
     let ca_cert_context = store.find_by_subject_str(&params.ca_cert)?;
@@ -144,7 +149,10 @@ fn main() -> anyhow::Result<()> {
 
     let server_config = ServerConfig::builder()
         .with_client_cert_verifier(verifier)
-        .with_cert_resolver(Arc::new(ServerCertResolver(store)));
+        .with_cert_resolver(Arc::new(ServerCertResolver {
+            store,
+            pin: params.password.clone(),
+        }));
 
     let server = TcpListener::bind(format!("0.0.0.0:{}", PORT))?;
 
