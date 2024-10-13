@@ -1,6 +1,6 @@
 [package]
 name = "rustls-cng"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Dmitry Pankratov <dmitry@pankratov.net>"]
 description = "Windows CNG API bridge for rustls"
 license = "MIT/Apache-2.0"
@@ -9,6 +9,7 @@ documentation = "https://rustls.github.io/rustls-cng/doc/rustls_cng"
 readme = "README.md"
 keywords = ["cng", "tls", "rustls", "windows"]
 edition = "2021"
+publish = false
 
 [package.metadata.docs.rs]
 targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]
