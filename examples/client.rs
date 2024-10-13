@@ -20,7 +20,11 @@ use rustls_cng::{
 const PORT: u16 = 8000;
 
 #[derive(Debug)]
-pub struct ClientCertResolver(CertStore, String);
+pub struct ClientCertResolver {
+    store: CertStore,
+    cert_name: String,
+    pin: Option<String>,
+}
 
 fn get_chain(
     store: &CertStore,
@@ -47,7 +51,10 @@ impl ResolvesClientCert for ClientCertResolver {
         sigschemes: &[SignatureScheme],
     ) -> Option<Arc<CertifiedKey>> {
         println!("Server sig schemes: {:#?}", sigschemes);
-        let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
+        let (chain, signing_key) = get_chain(&self.store, &self.cert_name).ok()?;
+        if let Some(ref pin) = self.pin {
+            signing_key.key().set_pin(pin).ok()?;
+        }
         for scheme in signing_key.supported_schemes() {
             if sigschemes.contains(scheme) {
                 return Some(Arc::new(CertifiedKey {
@@ -81,10 +88,9 @@ struct AppParams {
     #[clap(
         short = 'p',
         long = "password",
-        help = "Keystore password",
-        default_value = "changeit"
+        help = "Keystore password or token pin"
     )]
-    password: String,
+    password: Option<String>,
 
     #[clap(
         short = 's',
@@ -109,9 +115,9 @@ fn main() -> anyhow::Result<()> {
 
     let store = if let Some(ref keystore) = params.keystore {
         let data = std::fs::read(keystore)?;
-        CertStore::from_pkcs12(&data, &params.password)?
+        CertStore::from_pkcs12(&data, params.password.as_deref().unwrap_or_default())?
     } else {
-        CertStore::open(CertStoreType::LocalMachine, "my")?
+        CertStore::open(CertStoreType::CurrentUser, "my")?
     };
 
     let ca_cert_context = store.find_by_subject_str(&params.ca_cert)?;
@@ -122,10 +128,11 @@ fn main() -> anyhow::Result<()> {
 
     let client_config = ClientConfig::builder()
         .with_root_certificates(root_store)
-        .with_client_cert_resolver(Arc::new(ClientCertResolver(
+        .with_client_cert_resolver(Arc::new(ClientCertResolver {
             store,
-            params.client_cert.clone(),
-        )));
+            cert_name: params.client_cert.clone(),
+            pin: params.password.clone(),
+        }));
 
     let server_name = ServerName::try_from(params.server_name.as_str())?.to_owned();
     let mut connection = ClientConnection::new(Arc::new(client_config), server_name)?;
