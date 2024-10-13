@@ -136,6 +136,23 @@ impl CertStore {
         unsafe { self.do_find(CERT_FIND_HASH, &hash_blob as *const _ as _) }
     }
 
+    /// Find list of certificates matching the key identifier
+    pub fn find_by_key_id<D>(&self, key_id: D) -> Result<Vec<CertContext>>
+    where
+        D: AsRef<[u8]>,
+    {
+        let cert_id = CERT_ID {
+            dwIdChoice: CERT_ID_KEY_IDENTIFIER,
+            Anonymous: CERT_ID_0 {
+                KeyId: CRYPT_INTEGER_BLOB {
+                    cbData: key_id.as_ref().len() as u32,
+                    pbData: key_id.as_ref().as_ptr() as _,
+                },
+            },
+        };
+        unsafe { self.do_find(CERT_FIND_CERT_ID, &cert_id as *const _ as _) }
+    }
+
     /// Get all certificates
     pub fn find_all(&self) -> Result<Vec<CertContext>> {
         unsafe { self.do_find(CERT_FIND_ANY, ptr::null()) }
