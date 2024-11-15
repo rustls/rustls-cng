@@ -6,9 +6,21 @@ use rustls::{
     sign::{Signer, SigningKey},
     Error, OtherError, SignatureAlgorithm, SignatureScheme,
 };
-use sha2::digest::Digest;
+extern crate bcrypt;
+extern crate winapi;
+extern crate windows_sys;
+
+///use sha2::digest::Digest;
 
 use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
+
+use winapi::shared::bcrypt::BCryptHash;
+use windows_sys::Win32::Security::Cryptography::BCRYPT_ALG_HANDLE;
+
+use std::ptr::null_mut;
+const BCRYPT_SHA256_ALG_HANDLE: BCRYPT_ALG_HANDLE = 0x00000041 as BCRYPT_ALG_HANDLE;
+const BCRYPT_SHA384_ALG_HANDLE: BCRYPT_ALG_HANDLE = 0x00000051 as BCRYPT_ALG_HANDLE;
+const BCRYPT_SHA512_ALG_HANDLE: BCRYPT_ALG_HANDLE = 0x00000061 as BCRYPT_ALG_HANDLE;
 
 // Convert IEEE-P1363 signature format to DER encoding.
 // We assume the length of the r and s parts is less than 256 bytes.
@@ -100,6 +112,7 @@ struct CngSigner {
 }
 
 impl CngSigner {
+/* 
     fn hash(&self, message: &[u8]) -> Result<(Vec<u8>, SignaturePadding), Error> {
         let (hash, padding) = match self.scheme {
             SignatureScheme::RSA_PKCS1_SHA256 => (
@@ -136,9 +149,77 @@ impl CngSigner {
             ),
             _ => return Err(Error::General("Unsupported signature scheme".to_owned())),
         };
+
         Ok((hash, padding))
     }
+*/
+    // new hash function using BCryptHash
+    fn hash(&self, message: &[u8]) -> Result<(Vec<u8>, SignaturePadding), Error> {
+        let (alg, padding) = match self.scheme {
+            SignatureScheme::RSA_PKCS1_SHA256 => (
+                BCRYPT_SHA256_ALG_HANDLE,
+                SignaturePadding::Pkcs1,
+            ),
+            SignatureScheme::RSA_PKCS1_SHA384 => (
+                BCRYPT_SHA384_ALG_HANDLE,
+                SignaturePadding::Pkcs1,
+            ),
+            SignatureScheme::RSA_PKCS1_SHA512 => (
+                BCRYPT_SHA512_ALG_HANDLE,
+                SignaturePadding::Pkcs1,
+            ),
+            SignatureScheme::RSA_PSS_SHA256 => (
+                BCRYPT_SHA256_ALG_HANDLE,
+                SignaturePadding::Pss,
+            ),
+            SignatureScheme::RSA_PSS_SHA384 => (
+                BCRYPT_SHA384_ALG_HANDLE,
+                SignaturePadding::Pss,
+            ),
+            SignatureScheme::RSA_PSS_SHA512 => (
+                BCRYPT_SHA512_ALG_HANDLE,
+                SignaturePadding::Pss,
+            ),
+            SignatureScheme::ECDSA_NISTP256_SHA256 => (
+                BCRYPT_SHA256_ALG_HANDLE,
+                SignaturePadding::None,
+            ),
+            SignatureScheme::ECDSA_NISTP384_SHA384 => (
+                BCRYPT_SHA384_ALG_HANDLE,
+                SignaturePadding::None,
+            ),
+            _ => return Err(Error::General("Unsupported signature scheme".to_owned())),
+        };
+
+               
+        let hash_len = match alg { 
+            BCRYPT_SHA256_ALG_HANDLE => 32, 
+            BCRYPT_SHA384_ALG_HANDLE => 48, 
+            BCRYPT_SHA512_ALG_HANDLE => 64, 
+            _ => return Err(Error::General("Unsupported hash algorithm!".to_owned())), 
+        }; 
+
+        let mut hash = vec![0u8; hash_len]; 
+
+        unsafe {
+            let status = BCryptHash(
+                alg as *mut winapi::ctypes::c_void,
+                null_mut(), // pbsecret
+                0, // cbsecret
+                message.as_ptr() as *mut u8,
+                message.len() as u32,
+                hash.as_mut_ptr(),
+                hash_len as u32,
+            );
+
+            if status != 0 {
+                return Err(Error::General(format!("BCryptHash failed with status: 0x{:X}", status)));
+            }      
+        }
+        Ok((hash, padding))
+    } 
 }
+    
 
 impl Signer for CngSigner {
     fn sign(&self, message: &[u8]) -> Result<Vec<u8>, Error> {

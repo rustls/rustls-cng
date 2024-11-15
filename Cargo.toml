@@ -15,9 +15,13 @@ publish = false
 targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]
 
 [dependencies]
-rustls = { git = "https://github.com/rustls/rustls.git", default-features = false, features = [
-    "std",
-] }
+rustls = { version = "0.23.0", features = ["ring", "tls12", "std"], default-features = false }
+symcrypt = "0.3.0"
+rustls-platform-verifier = "0.3.4"  
+bcrypt = "0.15"
+winapi = { version = "0.3", features = ["bcrypt", "winuser"] }
+
+
 sha2 = "0.10"
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
@@ -29,6 +33,8 @@ aws-lc-rs = { version = "1", optional = true }
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 rustls-pki-types = "1"
+hex = "0.4.3"
+
 
 [features]
 default = ["logging", "tls12", "aws-lc-rs"]

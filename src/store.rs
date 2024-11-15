@@ -6,7 +6,9 @@ use windows_sys::Win32::Security::Cryptography::*;
 
 use crate::{cert::CertContext, error::CngError, Result};
 
+
 const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE = PKCS_7_ASN_ENCODING | X509_ASN_ENCODING;
+///const CERT_FIND_SHA256_HASH: u32 = 0x20000;
 
 macro_rules! utf16z {
     ($str: expr) => {
@@ -136,6 +138,19 @@ impl CertStore {
         unsafe { self.do_find(CERT_FIND_HASH, &hash_blob as *const _ as _) }
     }
 
+    /// Find list of certificates matching the SHA256 hash
+    pub fn find_by_sha256<D>(&self, hash: D) -> Result<Vec<CertContext>>
+    where
+        D: AsRef<[u8]>,
+    {
+        let hash_blob = CRYPT_INTEGER_BLOB {
+            cbData: hash.as_ref().len() as u32,
+            pbData: hash.as_ref().as_ptr() as _,
+        };
+        unsafe { self.cert_find_by_sha256(CERT_FIND_HASH, &hash_blob as *const _ as _) }
+    }
+
+
     /// Find list of certificates matching the key identifier
     pub fn find_by_key_id<D>(&self, key_id: D) -> Result<Vec<CertContext>>
     where
@@ -178,6 +193,39 @@ impl CertStore {
             }
         }
         Ok(certs)
+    }
+
+    unsafe fn cert_find_by_sha256(
+        &self,
+        flags: CERT_FIND_FLAGS,
+        find_param: *const c_void,
+    ) -> Result<Vec<CertContext>> {
+        let mut certs = Vec::new();
+        let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
+        let hash_blob = &*(find_param as *const CRYPT_INTEGER_BLOB);
+        let sha256_hash = std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
+        loop {
+            cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param, cert);
+            if cert.is_null() {
+                break;
+            } else {
+                let mut prop_data = [0u8; 32];
+                let mut prop_data_len = prop_data.len() as u32;
+                if CertGetCertificateContextProperty(
+                    cert,
+                    CERT_SHA256_HASH_PROP_ID,
+                    prop_data.as_mut_ptr() as *mut c_void,
+                    &mut prop_data_len,
+                ) != 0
+                {
+                    if prop_data[..prop_data_len as usize] == sha256_hash[..] {
+                        let cert = CertDuplicateCertificateContext(cert);
+                        certs.push(CertContext::new_owned(cert))
+                    }
+                }
+            }
+         }
+         Ok(certs)
     }
 
     fn find_by_str(&self, pattern: &str, flags: CERT_FIND_FLAGS) -> Result<Vec<CertContext>> {
