@@ -147,7 +147,7 @@ impl CertStore {
             cbData: hash.as_ref().len() as u32,
             pbData: hash.as_ref().as_ptr() as _,
         };
-        unsafe { self.cert_find_by_sha256(CERT_FIND_HASH, &hash_blob as *const _ as _) }
+        unsafe { self.cert_find_by_sha256(CERT_FIND_ANY, &hash_blob as *const _ as _) }
     }
 
 
@@ -211,6 +211,7 @@ impl CertStore {
             } else {
                 let mut prop_data = [0u8; 32];
                 let mut prop_data_len = prop_data.len() as u32;
+
                 if CertGetCertificateContextProperty(
                     cert,
                     CERT_SHA256_HASH_PROP_ID,
