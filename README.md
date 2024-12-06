@@ -1,5 +1,11 @@
 # Windows CNG bridge for rustls
 
+[![github actions](https://github.com/ancwrd1/rustls-cng/workflows/CI/badge.svg)](https://github.com/rustls/rustls-cng/actions)
+[![crates](https://img.shields.io/crates/v/rustls-cng.svg)](https://crates.io/crates/rustls-cng)
+[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![docs.rs](https://docs.rs/rustls-cng/badge.svg)](https://docs.rs/rustls-cng)
+
 This crate allows you to use the Windows CNG private keys together with [rustls](https://docs.rs/rustls/latest/rustls)
  for both the client and server sides of the TLS channel.
 

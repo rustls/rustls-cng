@@ -1,0 +1,21 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: ci/set_rust_version.bash ${{ matrix.channel }} ${{ matrix.target }}
+        shell: bash
+      - run: ci/test.bash cargo ${{ matrix.target }}
+        shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [stable]
+        target:
+          - x86_64-pc-windows-msvc
+          - x86_64-pc-windows-gnu
