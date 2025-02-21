@@ -139,7 +139,7 @@ impl CngSigner {
 
         unsafe {
             let status = BCryptHash(
-                alg as *mut core::ffi::c_void,
+                alg,
                 std::ptr::null_mut(), // pbSecret
                 0,                    // cbSecret
                 message.as_ptr() as *mut u8,
