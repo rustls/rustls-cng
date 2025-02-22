@@ -142,8 +142,10 @@ impl CertContext {
                     );
 
                     for (index, element) in elements.iter().enumerate() {
-                        if index != 0 && 0 != ((**element).TrustStatus.dwInfoStatus
-                                & CERT_TRUST_IS_SELF_SIGNED) {
+                        if index != 0
+                            && 0 != ((**element).TrustStatus.dwInfoStatus
+                                & CERT_TRUST_IS_SELF_SIGNED)
+                        {
                             break;
                         }
 

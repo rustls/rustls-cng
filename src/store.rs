@@ -227,7 +227,9 @@ impl CertStore {
                     CERT_SHA256_HASH_PROP_ID,
                     prop_data.as_mut_ptr() as *mut c_void,
                     &mut prop_data_len,
-                ) != 0 && prop_data[..prop_data_len as usize] == sha256_hash[..] {
+                ) != 0
+                    && prop_data[..prop_data_len as usize] == sha256_hash[..]
+                {
                     let cert = CertDuplicateCertificateContext(cert);
                     certs.push(CertContext::new_owned(cert))
                 }
