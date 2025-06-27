@@ -21,7 +21,7 @@ impl fmt::Display for CngError {
         match self {
             CngError::InvalidHashLength => write!(f, "Invalid hash length"),
             CngError::UnsupportedKeyAlgorithmGroup => write!(f, "Unsupported key algorithm group"),
-            CngError::WindowsError(code) => write!(f, "Error code {:08x}", code),
+            CngError::WindowsError(code) => write!(f, "Error code {code:08x}"),
         }
     }
 }

@@ -154,7 +154,7 @@ fn main() -> anyhow::Result<()> {
             pin: params.password.clone(),
         }));
 
-    let server = TcpListener::bind(format!("0.0.0.0:{}", PORT))?;
+    let server = TcpListener::bind(format!("0.0.0.0:{PORT}"))?;
 
     // to test: openssl s_client -servername HOSTNAME -connect localhost:8000
     accept(server, Arc::new(server_config))?;

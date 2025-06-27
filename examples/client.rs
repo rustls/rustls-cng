@@ -50,7 +50,7 @@ impl ResolvesClientCert for ClientCertResolver {
         _acceptable_issuers: &[&[u8]],
         sigschemes: &[SignatureScheme],
     ) -> Option<Arc<CertifiedKey>> {
-        println!("Server sig schemes: {:#?}", sigschemes);
+        println!("Server sig schemes: {sigschemes:#?}");
         let (chain, signing_key) = get_chain(&self.store, &self.cert_name).ok()?;
         if let Some(ref pin) = self.pin {
             signing_key.key().set_pin(pin).ok()?;

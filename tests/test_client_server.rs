@@ -82,7 +82,7 @@ mod client {
         let mut connection =
             ClientConnection::new(Arc::new(client_config), "rustls-server".try_into()?)?;
 
-        let mut client = TcpStream::connect(format!("localhost:{}", port))?;
+        let mut client = TcpStream::connect(format!("localhost:{port}"))?;
 
         let mut tls_stream = Stream::new(&mut connection, &mut client);
         tls_stream.write_all(b"ping")?;

@@ -150,8 +150,7 @@ impl CngSigner {
 
             if status != 0 {
                 return Err(Error::General(format!(
-                    "BCryptHash failed with status: 0x{:X}",
-                    status
+                    "BCryptHash failed with status: 0x{status:X}"
                 )));
             }
         }

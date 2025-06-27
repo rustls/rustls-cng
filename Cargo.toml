@@ -16,7 +16,7 @@ no-default-features = true
 
 [dependencies]
 rustls = { version = "0.23", default-features = false, features = ["std"] }
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
 anyhow = "1"

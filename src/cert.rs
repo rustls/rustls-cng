@@ -101,7 +101,7 @@ impl CertContext {
         unsafe {
             let param = CERT_CHAIN_PARA {
                 cbSize: mem::size_of::<CERT_CHAIN_PARA>() as u32,
-                RequestedUsage: std::mem::zeroed(),
+                ..Default::default()
             };
             let mut context: *mut CERT_CHAIN_CONTEXT = ptr::null_mut();
             let mut dw_access_state_flags: u32 = 0;
