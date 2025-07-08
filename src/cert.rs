@@ -117,7 +117,7 @@ impl CertContext {
             {
                 HCCE_LOCAL_MACHINE
             } else {
-                HCERTCHAINENGINE::default()
+                ptr::null_mut()
             };
 
             let result = CertGetCertificateChain(
