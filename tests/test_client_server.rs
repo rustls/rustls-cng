@@ -48,9 +48,10 @@ mod client {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
             for scheme in signing_key.supported_schemes() {
                 if sigschemes.contains(scheme) {
-                    return CertifiedKey::new(chain, Arc::new(signing_key))
-                        .ok()
-                        .map(Arc::new);
+                    return Some(Arc::new(CertifiedKey::new_unchecked(
+                        chain,
+                        Arc::new(signing_key),
+                    )));
                 }
             }
             None
@@ -128,7 +129,7 @@ mod server {
             let chain = context.as_chain_der().ok()?;
             let certs = chain.into_iter().map(Into::into).collect();
 
-            CertifiedKey::new(certs, Arc::new(key)).ok().map(Arc::new)
+            Some(Arc::new(CertifiedKey::new_unchecked(certs, Arc::new(key))))
         }
     }
 
