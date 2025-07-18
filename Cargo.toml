@@ -17,6 +17,7 @@ no-default-features = true
 
 [dependencies]
 rustls = { git = "https://github.com/rustls/rustls.git", default-features = false, features = ["std"] }
+rustls-pki-types = "1"
 time = { version = "0.3.43", default-features = false, optional = true }
 windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
@@ -26,10 +27,12 @@ clap = { version = "4", features = ["derive"] }
 rustls-pki-types = "1"
 
 [features]
-default = ["logging", "tls12", "aws-lc-rs"]
-aws-lc-rs = ["rustls/aws_lc_rs"]
+default = ["log", "tls12", "aws-lc-rs"]
+aws-lc-rs = ["rustls/aws-lc-rs"]
 fips = ["rustls/fips"]
-logging = ["rustls/logging"]
+log = ["rustls/log"]
 ring = ["rustls/ring"]
 time = ["dep:time"]
 tls12 = ["rustls/tls12"]
+brotli = ["rustls/brotli"]
+zlib = ["rustls/zlib"]

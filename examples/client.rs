@@ -57,11 +57,9 @@ impl ResolvesClientCert for ClientCertResolver {
         }
         for scheme in signing_key.supported_schemes() {
             if sigschemes.contains(scheme) {
-                return Some(Arc::new(CertifiedKey {
-                    cert: chain,
-                    key: Arc::new(signing_key),
-                    ocsp: None,
-                }));
+                return CertifiedKey::new(chain, Arc::new(signing_key))
+                    .ok()
+                    .map(Arc::new);
             }
         }
         None

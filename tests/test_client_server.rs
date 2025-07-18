@@ -48,11 +48,9 @@ mod client {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
             for scheme in signing_key.supported_schemes() {
                 if sigschemes.contains(scheme) {
-                    return Some(Arc::new(CertifiedKey {
-                        cert: chain,
-                        key: Arc::new(signing_key),
-                        ocsp: None,
-                    }));
+                    return CertifiedKey::new(chain, Arc::new(signing_key))
+                        .ok()
+                        .map(Arc::new);
                 }
             }
             None
@@ -117,7 +115,7 @@ mod server {
     pub struct ServerCertResolver(CertStore);
 
     impl ResolvesServerCert for ServerCertResolver {
-        fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
+        fn resolve(&self, client_hello: &ClientHello) -> Option<Arc<CertifiedKey>> {
             let name = client_hello.server_name()?;
 
             let contexts = self.0.find_by_subject_str(name).ok()?;
@@ -130,11 +128,7 @@ mod server {
             let chain = context.as_chain_der().ok()?;
             let certs = chain.into_iter().map(Into::into).collect();
 
-            Some(Arc::new(CertifiedKey {
-                cert: certs,
-                key: Arc::new(key),
-                ocsp: None,
-            }))
+            CertifiedKey::new(certs, Arc::new(key)).ok().map(Arc::new)
         }
     }
 

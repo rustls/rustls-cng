@@ -54,7 +54,7 @@ pub struct ServerCertResolver {
 }
 
 impl ResolvesServerCert for ServerCertResolver {
-    fn resolve(&self, client_hello: ClientHello) -> Option<Arc<CertifiedKey>> {
+    fn resolve(&self, client_hello: &ClientHello) -> Option<Arc<CertifiedKey>> {
         println!("Client hello server name: {:?}", client_hello.server_name());
         let name = client_hello.server_name()?;
 
@@ -78,11 +78,7 @@ impl ResolvesServerCert for ServerCertResolver {
         let certs = chain.into_iter().map(Into::into).collect();
 
         // return CertifiedKey instance
-        Some(Arc::new(CertifiedKey {
-            cert: certs,
-            key: Arc::new(key),
-            ocsp: None,
-        }))
+        CertifiedKey::new(certs, Arc::new(key)).ok().map(Arc::new)
     }
 }
 

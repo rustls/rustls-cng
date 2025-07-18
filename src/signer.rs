@@ -6,13 +6,12 @@ use rustls::{
     sign::{Signer, SigningKey},
     Error, OtherError, SignatureAlgorithm, SignatureScheme,
 };
+use rustls_pki_types::SubjectPublicKeyInfoDer;
+use windows_sys::Win32::Security::Cryptography::{
+    BCryptHash, BCRYPT_SHA256_ALG_HANDLE, BCRYPT_SHA384_ALG_HANDLE, BCRYPT_SHA512_ALG_HANDLE,
+};
 
 use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
-
-use windows_sys::Win32::Security::Cryptography::BCryptHash;
-use windows_sys::Win32::Security::Cryptography::{
-    BCRYPT_SHA256_ALG_HANDLE, BCRYPT_SHA384_ALG_HANDLE, BCRYPT_SHA512_ALG_HANDLE,
-};
 
 // Convert IEEE-P1363 signature format to DER encoding.
 // We assume the length of the r and s parts is less than 256 bytes.
@@ -190,6 +189,10 @@ impl SigningKey for CngSigningKey {
                 }));
             }
         }
+        None
+    }
+
+    fn public_key(&self) -> Option<SubjectPublicKeyInfoDer<'_>> {
         None
     }
 
