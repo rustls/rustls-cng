@@ -27,12 +27,11 @@ clap = { version = "4", features = ["derive"] }
 rustls-pki-types = "1"
 
 [features]
-default = ["log", "tls12", "aws-lc-rs"]
+default = ["log"]
 aws-lc-rs = ["rustls/aws-lc-rs"]
 fips = ["rustls/fips"]
 log = ["rustls/log"]
 ring = ["rustls/ring"]
 time = ["dep:time"]
-tls12 = ["rustls/tls12"]
 brotli = ["rustls/brotli"]
 zlib = ["rustls/zlib"]
