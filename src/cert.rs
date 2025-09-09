@@ -161,4 +161,50 @@ impl CertContext {
             }
         }
     }
+
+    /// Returns the time when the certificate was added to the store.
+    ///
+    /// `None` if the property is not set.
+    #[cfg(feature = "time")]
+    pub fn timestamp(&self) -> Result<Option<time::UtcDateTime>> {
+        use std::time::Duration;
+        use windows_sys::core::HRESULT;
+        use windows_sys::Win32::Foundation::{GetLastError, CRYPT_E_NOT_FOUND, FILETIME};
+
+        // Duration between Windows epoch (1601-01-01) and Unix epoch (1970-01-01)
+        const WINDOWS_TO_UNIX_EPOCH: Duration = Duration::from_secs(11_644_473_600);
+
+        let mut filetime = FILETIME::default();
+        let mut size = mem::size_of::<FILETIME>() as u32;
+
+        let success = unsafe {
+            CertGetCertificateContextProperty(
+                self.inner(),
+                CERT_DATE_STAMP_PROP_ID,
+                &mut filetime as *mut _ as *mut _,
+                &mut size,
+            )
+        } != 0;
+
+        if !success {
+            let error = unsafe { GetLastError() };
+            return match error as HRESULT {
+                CRYPT_E_NOT_FOUND => Ok(None),
+                _ => Err(CngError::WindowsError(error)),
+            };
+        }
+
+        let ticks = ((filetime.dwHighDateTime as u64) << 32) | filetime.dwLowDateTime as u64;
+
+        // Each tick is 100 nanoseconds (FILETIME is in 100ns units)
+        let duration_since_windows_epoch = Duration::from_nanos(ticks * 100);
+
+        let duration_since_unix_epoch = duration_since_windows_epoch
+            .checked_sub(WINDOWS_TO_UNIX_EPOCH)
+            .unwrap_or(Duration::ZERO);
+
+        let timestamp = time::UtcDateTime::UNIX_EPOCH + duration_since_unix_epoch;
+
+        Ok(Some(timestamp))
+    }
 }
