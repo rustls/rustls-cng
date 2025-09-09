@@ -16,6 +16,7 @@ no-default-features = true
 
 [dependencies]
 rustls = { version = "0.23", default-features = false, features = ["std"] }
+time = { version = "0.3.43", default-features = false, optional = true }
 windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
@@ -29,4 +30,5 @@ aws-lc-rs = ["rustls/aws_lc_rs"]
 fips = ["rustls/fips"]
 logging = ["rustls/logging"]
 ring = ["rustls/ring"]
+time = ["dep:time"]
 tls12 = ["rustls/tls12"]
