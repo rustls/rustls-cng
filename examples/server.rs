@@ -139,16 +139,14 @@ fn main() -> anyhow::Result<()> {
     let mut root_store = RootCertStore::empty();
     root_store.add(ca_cert.as_der().into())?;
 
-    let verifier = WebPkiClientVerifier::builder(Arc::new(root_store))
-        .build()
-        .unwrap();
+    let verifier = WebPkiClientVerifier::builder(Arc::new(root_store)).build()?;
 
     let server_config = ServerConfig::builder()
         .with_client_cert_verifier(verifier)
         .with_cert_resolver(Arc::new(ServerCertResolver {
             store,
             pin: params.password.clone(),
-        }));
+        }))?;
 
     let server = TcpListener::bind(format!("0.0.0.0:{PORT}"))?;
 

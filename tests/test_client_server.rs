@@ -76,7 +76,7 @@ mod client {
             .with_client_cert_resolver(Arc::new(ClientCertResolver(
                 store,
                 "rustls-client".to_string(),
-            )));
+            )))?;
 
         let mut connection =
             ClientConnection::new(Arc::new(client_config), "rustls-server".try_into()?)?;
@@ -156,13 +156,11 @@ mod server {
         let mut root_store = RootCertStore::empty();
         root_store.add(ca_cert.as_der().into())?;
 
-        let verifier = WebPkiClientVerifier::builder(Arc::new(root_store))
-            .build()
-            .unwrap();
+        let verifier = WebPkiClientVerifier::builder(Arc::new(root_store)).build()?;
 
         let server_config = ServerConfig::builder()
             .with_client_cert_verifier(verifier)
-            .with_cert_resolver(Arc::new(ServerCertResolver(store)));
+            .with_cert_resolver(Arc::new(ServerCertResolver(store)))?;
 
         let server = TcpListener::bind("127.0.0.1:0")?;
 

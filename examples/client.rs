@@ -130,7 +130,7 @@ fn main() -> anyhow::Result<()> {
             store,
             cert_name: params.client_cert.clone(),
             pin: params.password.clone(),
-        }));
+        }))?;
 
     let server_name = ServerName::try_from(params.server_name.as_str())?.to_owned();
     let mut connection = ClientConnection::new(Arc::new(client_config), server_name)?;
