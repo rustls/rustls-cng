@@ -8,7 +8,7 @@ repository = "https://github.com/rustls/rustls-cng"
 documentation = "https://docs.rs/rustls-cng"
 readme = "README.md"
 keywords = ["cng", "tls", "rustls", "windows"]
-edition = "2021"
+edition = "2024"
 publish = false
 
 [package.metadata.docs.rs]
@@ -19,7 +19,7 @@ no-default-features = true
 rustls = { git = "https://github.com/rustls/rustls.git", default-features = false, features = ["std"] }
 rustls-pki-types = "1"
 time = { version = "0.3.43", default-features = false, optional = true }
-windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
 anyhow = "1"

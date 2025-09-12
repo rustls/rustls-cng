@@ -4,7 +4,7 @@ use std::{os::raw::c_void, ptr};
 
 use windows_sys::Win32::Security::Cryptography::*;
 
-use crate::{cert::CertContext, error::CngError, Result};
+use crate::{Result, cert::CertContext, error::CngError};
 
 const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE = PKCS_7_ASN_ENCODING | X509_ASN_ENCODING;
 
@@ -184,16 +184,25 @@ impl CertStore {
     ) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
-        let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
+        unsafe {
+            let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
 
-        loop {
-            cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param, cert);
-            if cert.is_null() {
-                break;
-            } else {
-                // increase refcount because it will be released by next call to CertFindCertificateInStore
-                let cert = CertDuplicateCertificateContext(cert);
-                certs.push(CertContext::new_owned(cert))
+            loop {
+                cert = CertFindCertificateInStore(
+                    self.0,
+                    MY_ENCODING_TYPE,
+                    0,
+                    flags,
+                    find_param,
+                    cert,
+                );
+                if cert.is_null() {
+                    break;
+                } else {
+                    // increase refcount because it will be released by next call to CertFindCertificateInStore
+                    let cert = CertDuplicateCertificateContext(cert);
+                    certs.push(CertContext::new_owned(cert))
+                }
             }
         }
         Ok(certs)
@@ -204,34 +213,37 @@ impl CertStore {
         find_param: *const c_void,
     ) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
-        let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
-        let hash_blob = &*(find_param as *const CRYPT_INTEGER_BLOB);
-        let sha256_hash = std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
-        loop {
-            cert = CertFindCertificateInStore(
-                self.0,
-                MY_ENCODING_TYPE,
-                0,
-                CERT_FIND_ANY,
-                find_param,
-                cert,
-            );
-            if cert.is_null() {
-                break;
-            } else {
-                let mut prop_data = [0u8; 32];
-                let mut prop_data_len = prop_data.len() as u32;
 
-                if CertGetCertificateContextProperty(
+        unsafe {
+            let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
+            let hash_blob = &*(find_param as *const CRYPT_INTEGER_BLOB);
+            let sha256_hash = std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
+            loop {
+                cert = CertFindCertificateInStore(
+                    self.0,
+                    MY_ENCODING_TYPE,
+                    0,
+                    CERT_FIND_ANY,
+                    find_param,
                     cert,
-                    CERT_SHA256_HASH_PROP_ID,
-                    prop_data.as_mut_ptr() as *mut c_void,
-                    &mut prop_data_len,
-                ) != 0
-                    && prop_data[..prop_data_len as usize] == sha256_hash[..]
-                {
-                    let cert = CertDuplicateCertificateContext(cert);
-                    certs.push(CertContext::new_owned(cert))
+                );
+                if cert.is_null() {
+                    break;
+                } else {
+                    let mut prop_data = [0u8; 32];
+                    let mut prop_data_len = prop_data.len() as u32;
+
+                    if CertGetCertificateContextProperty(
+                        cert,
+                        CERT_SHA256_HASH_PROP_ID,
+                        prop_data.as_mut_ptr() as *mut c_void,
+                        &mut prop_data_len,
+                    ) != 0
+                        && prop_data[..prop_data_len as usize] == sha256_hash[..]
+                    {
+                        let cert = CertDuplicateCertificateContext(cert);
+                        certs.push(CertContext::new_owned(cert))
+                    }
                 }
             }
         }

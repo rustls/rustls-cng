@@ -7,9 +7,9 @@ use std::{
 
 use clap::Parser;
 use rustls::{
+    RootCertStore, ServerConfig, ServerConnection, Stream,
     server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
     sign::CertifiedKey,
-    RootCertStore, ServerConfig, ServerConnection, Stream,
 };
 
 use rustls_cng::{
@@ -98,10 +98,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
         tls_stream.conn.negotiated_cipher_suite()
     );
     println!("SNI host name: {:?}", tls_stream.conn.server_name());
-    println!(
-        "Peer certificates: {:?}",
-        tls_stream.conn.peer_certificates().map(|c| c.len())
-    );
+    println!("Peer identity: {:?}", tls_stream.conn.peer_identity());
 
     let mut buf = [0u8; 4];
     tls_stream.read_exact(&mut buf)?;
