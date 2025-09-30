@@ -56,9 +56,7 @@ impl ResolvesClientCert for ClientCertResolver {
         if let Some(ref pin) = self.pin {
             signing_key.key().set_pin(pin).ok()?;
         }
-        CertifiedKey::new(chain.into(), Box::new(signing_key))
-            .ok()?
-            .signer(sigschemes)
+        CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key)).signer(sigschemes)
     }
 
     fn has_certs(&self) -> bool {

@@ -83,7 +83,7 @@ impl ResolvesServerCert for ServerCertResolver {
             .map_err(|_| rustls::Error::NoSuitableCertificate)?;
         let certs = chain.into_iter().map(Into::into).collect();
 
-        CertifiedKey::new(certs, Box::new(key))?
+        CertifiedKey::new_unchecked(certs, Box::new(key))
             .signer(client_hello.signature_schemes())
             .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
     }

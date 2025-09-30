@@ -47,9 +47,7 @@ mod client {
             sigschemes: &[SignatureScheme],
         ) -> Option<CertifiedSigner> {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
-            CertifiedKey::new(chain.into(), Box::new(signing_key))
-                .ok()?
-                .signer(sigschemes)
+            CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key)).signer(sigschemes)
         }
 
         fn has_certs(&self) -> bool {
@@ -133,7 +131,7 @@ mod server {
                 .map_err(|_| rustls::Error::NoSuitableCertificate)?;
             let certs = chain.into_iter().map(Into::into).collect();
 
-            CertifiedKey::new(certs, Box::new(key))?
+            CertifiedKey::new_unchecked(certs, Box::new(key))
                 .signer(client_hello.signature_schemes())
                 .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
         }
