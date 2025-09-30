@@ -217,7 +217,8 @@ impl CertStore {
         unsafe {
             let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
             let hash_blob = &*(find_param as *const CRYPT_INTEGER_BLOB);
-            let sha256_hash = std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
+            let sha256_hash =
+                std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
             loop {
                 cert = CertFindCertificateInStore(
                     self.0,

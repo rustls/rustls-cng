@@ -3,8 +3,8 @@
 use std::fmt;
 
 use windows_sys::{
+    Win32::Foundation::{ERROR_SUCCESS, GetLastError, WIN32_ERROR},
     core::HRESULT,
-    Win32::Foundation::{GetLastError, ERROR_SUCCESS, WIN32_ERROR},
 };
 
 /// Errors that may be returned in this crate

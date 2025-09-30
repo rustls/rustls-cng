@@ -3,12 +3,12 @@
 use std::sync::Arc;
 
 use rustls::{
-    sign::{Signer, SigningKey},
     Error, OtherError, SignatureAlgorithm, SignatureScheme,
+    sign::{Signer, SigningKey},
 };
 use rustls_pki_types::SubjectPublicKeyInfoDer;
 use windows_sys::Win32::Security::Cryptography::{
-    BCryptHash, BCRYPT_SHA256_ALG_HANDLE, BCRYPT_SHA384_ALG_HANDLE, BCRYPT_SHA512_ALG_HANDLE,
+    BCRYPT_SHA256_ALG_HANDLE, BCRYPT_SHA384_ALG_HANDLE, BCRYPT_SHA512_ALG_HANDLE, BCryptHash,
 };
 
 use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
@@ -158,7 +158,7 @@ impl CngSigner {
 }
 
 impl Signer for CngSigner {
-    fn sign(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
+    fn sign(self: Box<CngSigner>, message: &[u8]) -> Result<Vec<u8>, Error> {
         let (hash, padding) = self.hash(message)?;
         let signature = self
             .key
@@ -222,7 +222,9 @@ mod tests {
         let der = super::p1363_to_der(&p1363);
         assert_eq!(
             der,
-            [0x30, 0x0e, 0x02, 0x05, 0, 0x81, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8]
+            [
+                0x30, 0x0e, 0x02, 0x05, 0, 0x81, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8
+            ]
         )
     }
 }

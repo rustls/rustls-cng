@@ -4,7 +4,7 @@ use std::{mem, ptr, slice, sync::Arc};
 
 use windows_sys::Win32::Security::Cryptography::*;
 
-use crate::{error::CngError, key::NCryptKey, Result};
+use crate::{Result, error::CngError, key::NCryptKey};
 
 const HCCE_LOCAL_MACHINE: HCERTCHAINENGINE = 0x1 as HCERTCHAINENGINE;
 
@@ -168,8 +168,8 @@ impl CertContext {
     #[cfg(feature = "time")]
     pub fn timestamp(&self) -> Result<Option<time::UtcDateTime>> {
         use std::time::Duration;
+        use windows_sys::Win32::Foundation::{CRYPT_E_NOT_FOUND, FILETIME, GetLastError};
         use windows_sys::core::HRESULT;
-        use windows_sys::Win32::Foundation::{GetLastError, CRYPT_E_NOT_FOUND, FILETIME};
 
         // Duration between Windows epoch (1601-01-01) and Unix epoch (1970-01-01)
         const WINDOWS_TO_UNIX_EPOCH: Duration = Duration::from_secs(11_644_473_600);

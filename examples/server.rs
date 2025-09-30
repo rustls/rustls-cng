@@ -9,9 +9,8 @@ use clap::Parser;
 use rustls::{
     RootCertStore, ServerConfig, ServerConnection, Stream,
     server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
-    sign::CertifiedKey,
+    sign::{CertifiedKey, CertifiedSigner},
 };
-
 use rustls_cng::{
     signer::CngSigningKey,
     store::{CertStore, CertStoreType},
@@ -54,31 +53,39 @@ pub struct ServerCertResolver {
 }
 
 impl ResolvesServerCert for ServerCertResolver {
-    fn resolve(&self, client_hello: &ClientHello) -> Option<Arc<CertifiedKey>> {
+    fn resolve(&self, client_hello: &ClientHello) -> Result<CertifiedSigner, rustls::Error> {
         println!("Client hello server name: {:?}", client_hello.server_name());
-        let name = client_hello.server_name()?;
+        let name = client_hello
+            .server_name()
+            .ok_or_else(|| rustls::Error::NoSuitableCertificate)?;
 
-        // look up certificate by subject
-        let contexts = self.store.find_by_subject_str(name).ok()?;
+        let contexts = self
+            .store
+            .find_by_subject_str(name)
+            .map_err(|_| rustls::Error::NoSuitableCertificate)?;
 
-        // attempt to acquire a private key and construct CngSigningKey
-        let (context, key) = contexts.into_iter().find_map(|ctx| {
-            let key = ctx.acquire_key(true).ok()?;
-            if let Some(ref pin) = self.pin {
-                key.set_pin(pin).ok()?;
-            }
-            CngSigningKey::new(key).ok().map(|key| (ctx, key))
-        })?;
+        let (context, key) = contexts
+            .into_iter()
+            .find_map(|ctx| {
+                let key = ctx.acquire_key(true).ok()?;
+                if let Some(ref pin) = self.pin {
+                    key.set_pin(pin).ok()?;
+                }
+                CngSigningKey::new(key).ok().map(|key| (ctx, key))
+            })
+            .ok_or_else(|| rustls::Error::NoSuitableCertificate)?;
 
         println!("Key alg group: {:?}", key.key().algorithm_group());
         println!("Key alg: {:?}", key.key().algorithm());
 
-        // attempt to acquire a full certificate chain
-        let chain = context.as_chain_der().ok()?;
+        let chain = context
+            .as_chain_der()
+            .map_err(|_| rustls::Error::NoSuitableCertificate)?;
         let certs = chain.into_iter().map(Into::into).collect();
 
-        // return CertifiedKey instance
-        CertifiedKey::new(certs, Arc::new(key)).ok().map(Arc::new)
+        CertifiedKey::new(certs, Box::new(key))?
+            .signer(client_hello.signature_schemes())
+            .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
     }
 }
 

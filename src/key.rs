@@ -3,11 +3,11 @@
 use std::{os::raw::c_void, ptr, str::FromStr, sync::Arc};
 
 use windows_sys::{
-    core::PCWSTR,
     Win32::Security::{Cryptography::*, OBJECT_SECURITY_INFORMATION},
+    core::PCWSTR,
 };
 
-use crate::{error::CngError, Result};
+use crate::{Result, error::CngError};
 
 /// Algorithm group of the CNG private key
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
