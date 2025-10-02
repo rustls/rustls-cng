@@ -7,7 +7,7 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    ClientConfig, ClientConnection, RootCertStore, SignatureScheme, Stream,
+    CertificateType, ClientConfig, ClientConnection, RootCertStore, SignatureScheme, Stream,
     client::ResolvesClientCert,
     sign::{CertifiedKey, CertifiedSigner},
 };
@@ -59,8 +59,8 @@ impl ResolvesClientCert for ClientCertResolver {
         CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key)).signer(sigschemes)
     }
 
-    fn has_certs(&self) -> bool {
-        true
+    fn supported_certificate_types(&self) -> &'static [CertificateType] {
+        &[CertificateType::X509]
     }
 }
 
