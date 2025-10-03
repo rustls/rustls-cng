@@ -43,7 +43,8 @@ mod client {
     impl ResolvesClientCert for ClientCertResolver {
         fn resolve(
             &self,
-            _acceptable_issuers: &[&[u8]],
+            _negotiated_type: CertificateType,
+            _root_hint_subjects: &[&[u8]],
             sigschemes: &[SignatureScheme],
         ) -> Option<CertifiedSigner> {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;

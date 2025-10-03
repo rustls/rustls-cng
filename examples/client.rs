@@ -48,7 +48,8 @@ fn get_chain(
 impl ResolvesClientCert for ClientCertResolver {
     fn resolve(
         &self,
-        _acceptable_issuers: &[&[u8]],
+        _negotiated_type: CertificateType,
+        _root_hint_subjects: &[&[u8]],
         sigschemes: &[SignatureScheme],
     ) -> Option<CertifiedSigner> {
         println!("Server sig schemes: {sigschemes:#?}");
