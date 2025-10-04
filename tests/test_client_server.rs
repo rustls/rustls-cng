@@ -11,8 +11,8 @@ mod client {
     };
 
     use rustls::{
-        CertificateType, ClientConfig, ClientConnection, RootCertStore, SignatureScheme, Stream,
-        client::ResolvesClientCert,
+        CertificateType, ClientConfig, ClientConnection, RootCertStore, Stream,
+        client::{CredentialRequest, ResolvesClientCert},
         sign::{CertifiedKey, CertifiedSigner},
     };
     use rustls_pki_types::CertificateDer;
@@ -41,14 +41,10 @@ mod client {
     }
 
     impl ResolvesClientCert for ClientCertResolver {
-        fn resolve(
-            &self,
-            _negotiated_type: CertificateType,
-            _root_hint_subjects: &[&[u8]],
-            sigschemes: &[SignatureScheme],
-        ) -> Option<CertifiedSigner> {
+        fn resolve(&self, server_hello: &CredentialRequest) -> Option<CertifiedSigner> {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
-            CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key)).signer(sigschemes)
+            CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key))
+                .signer(server_hello.signature_schemes())
         }
 
         fn supported_certificate_types(&self) -> &'static [CertificateType] {
