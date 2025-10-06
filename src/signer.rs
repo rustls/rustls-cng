@@ -163,7 +163,7 @@ impl Signer for CngSigner {
         let signature = self
             .key
             .sign(&hash, padding)
-            .map_err(|e| Error::Other(OtherError(Arc::new(e))))?;
+            .map_err(|e| Error::Other(OtherError::new(Arc::new(e))))?;
 
         if padding == SignaturePadding::None {
             // For ECDSA keys Windows produces IEEE-P1363 signatures which must be converted to DER format
