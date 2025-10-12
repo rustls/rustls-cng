@@ -12,7 +12,7 @@ mod client {
 
     use rustls::{
         CertificateType, ClientConfig, ClientConnection, RootCertStore, Stream,
-        client::{CredentialRequest, ResolvesClientCert},
+        client::{ClientCredentialResolver, CredentialRequest},
         sign::{CertifiedKey, CertifiedSigner},
     };
     use rustls_pki_types::CertificateDer;
@@ -40,7 +40,7 @@ mod client {
         Ok((chain, signing_key))
     }
 
-    impl ResolvesClientCert for ClientCertResolver {
+    impl ClientCredentialResolver for ClientCertResolver {
         fn resolve(&self, server_hello: &CredentialRequest) -> Option<CertifiedSigner> {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
             CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key))
@@ -63,7 +63,7 @@ mod client {
 
         let client_config = ClientConfig::builder()
             .with_root_certificates(root_store)
-            .with_client_cert_resolver(Arc::new(ClientCertResolver(
+            .with_client_credential_resolver(Arc::new(ClientCertResolver(
                 store,
                 "rustls-client".to_string(),
             )))?;
@@ -96,7 +96,7 @@ mod server {
 
     use rustls::{
         RootCertStore, ServerConfig, ServerConnection, Stream,
-        server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
+        server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
         sign::{CertifiedKey, CertifiedSigner},
     };
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
@@ -104,7 +104,7 @@ mod server {
     #[derive(Debug)]
     pub struct ServerCertResolver(CertStore);
 
-    impl ResolvesServerCert for ServerCertResolver {
+    impl ServerCredentialResolver for ServerCertResolver {
         fn resolve(&self, client_hello: &ClientHello) -> Result<CertifiedSigner, rustls::Error> {
             let name = client_hello
                 .server_name()
@@ -161,7 +161,7 @@ mod server {
 
         let server_config = ServerConfig::builder()
             .with_client_cert_verifier(verifier)
-            .with_cert_resolver(Arc::new(ServerCertResolver(store)))?;
+            .with_server_credential_resolver(Arc::new(ServerCertResolver(store)))?;
 
         let server = TcpListener::bind("127.0.0.1:0")?;
 

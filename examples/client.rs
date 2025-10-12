@@ -8,7 +8,7 @@ use std::{
 use clap::Parser;
 use rustls::{
     CertificateType, ClientConfig, ClientConnection, RootCertStore, Stream,
-    client::{CredentialRequest, ResolvesClientCert},
+    client::{ClientCredentialResolver, CredentialRequest},
     sign::{CertifiedKey, CertifiedSigner},
 };
 use rustls_pki_types::{CertificateDer, ServerName};
@@ -45,7 +45,7 @@ fn get_chain(
     Ok((chain, signing_key))
 }
 
-impl ResolvesClientCert for ClientCertResolver {
+impl ClientCredentialResolver for ClientCertResolver {
     fn resolve(&self, server_hello: &CredentialRequest) -> Option<CertifiedSigner> {
         println!("Server sig schemes: {:?}", server_hello.signature_schemes());
         let (chain, signing_key) = get_chain(&self.store, &self.cert_name).ok()?;
@@ -117,7 +117,7 @@ fn main() -> anyhow::Result<()> {
 
     let client_config = ClientConfig::builder()
         .with_root_certificates(root_store)
-        .with_client_cert_resolver(Arc::new(ClientCertResolver {
+        .with_client_credential_resolver(Arc::new(ClientCertResolver {
             store,
             cert_name: params.client_cert.clone(),
             pin: params.password.clone(),

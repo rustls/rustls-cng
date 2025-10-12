@@ -8,7 +8,7 @@ use std::{
 use clap::Parser;
 use rustls::{
     RootCertStore, ServerConfig, ServerConnection, Stream,
-    server::{ClientHello, ResolvesServerCert, WebPkiClientVerifier},
+    server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
     sign::{CertifiedKey, CertifiedSigner},
 };
 use rustls_cng::{
@@ -52,7 +52,7 @@ pub struct ServerCertResolver {
     pin: Option<String>,
 }
 
-impl ResolvesServerCert for ServerCertResolver {
+impl ServerCredentialResolver for ServerCertResolver {
     fn resolve(&self, client_hello: &ClientHello) -> Result<CertifiedSigner, rustls::Error> {
         println!("Client hello server name: {:?}", client_hello.server_name());
         let name = client_hello
@@ -147,7 +147,7 @@ fn main() -> anyhow::Result<()> {
 
     let server_config = ServerConfig::builder()
         .with_client_cert_verifier(verifier)
-        .with_cert_resolver(Arc::new(ServerCertResolver {
+        .with_server_credential_resolver(Arc::new(ServerCertResolver {
             store,
             pin: params.password.clone(),
         }))?;

@@ -509,7 +509,7 @@ checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
 [[package]]
 name = "rustls"
 version = "0.24.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#b07600ebb67a40138b86fb3abd97285fae001d6c"
+source = "git+https://github.com/rustls/rustls.git#fc93866d41f882a117d6635296e3ecb08535aebf"
 dependencies = [
  "aws-lc-rs",
  "brotli",
