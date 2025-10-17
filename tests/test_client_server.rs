@@ -11,7 +11,7 @@ mod client {
     };
 
     use rustls::{
-        CertificateType, ClientConfig, ClientConnection, RootCertStore, Stream,
+        CertificateType, ClientConfig, ClientConnection, PeerIdentity, RootCertStore, Stream,
         client::{ClientCredentialResolver, CredentialRequest},
         sign::{CertifiedKey, CertifiedSigner},
     };
@@ -43,8 +43,11 @@ mod client {
     impl ClientCredentialResolver for ClientCertResolver {
         fn resolve(&self, server_hello: &CredentialRequest) -> Option<CertifiedSigner> {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
-            CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key))
-                .signer(server_hello.signature_schemes())
+            CertifiedKey::new_unchecked(
+                Arc::new(PeerIdentity::from_cert_chain(chain).ok()?),
+                Box::new(signing_key),
+            )
+            .signer(server_hello.signature_schemes())
         }
 
         fn supported_certificate_types(&self) -> &'static [CertificateType] {
@@ -95,7 +98,7 @@ mod server {
     };
 
     use rustls::{
-        RootCertStore, ServerConfig, ServerConnection, Stream,
+        PeerIdentity, RootCertStore, ServerConfig, ServerConnection, Stream,
         server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
         sign::{CertifiedKey, CertifiedSigner},
     };
@@ -128,9 +131,12 @@ mod server {
                 .map_err(|_| rustls::Error::NoSuitableCertificate)?;
             let certs = chain.into_iter().map(Into::into).collect();
 
-            CertifiedKey::new_unchecked(certs, Box::new(key))
-                .signer(client_hello.signature_schemes())
-                .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
+            CertifiedKey::new_unchecked(
+                Arc::new(PeerIdentity::from_cert_chain(certs)?),
+                Box::new(key),
+            )
+            .signer(client_hello.signature_schemes())
+            .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
         }
     }
 

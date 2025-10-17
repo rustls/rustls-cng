@@ -7,7 +7,7 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    CertificateType, ClientConfig, ClientConnection, RootCertStore, Stream,
+    CertificateType, ClientConfig, ClientConnection, PeerIdentity, RootCertStore, Stream,
     client::{ClientCredentialResolver, CredentialRequest},
     sign::{CertifiedKey, CertifiedSigner},
 };
@@ -52,8 +52,11 @@ impl ClientCredentialResolver for ClientCertResolver {
         if let Some(ref pin) = self.pin {
             signing_key.key().set_pin(pin).ok()?;
         }
-        CertifiedKey::new_unchecked(chain.into(), Box::new(signing_key))
-            .signer(server_hello.signature_schemes())
+        CertifiedKey::new_unchecked(
+            Arc::new(PeerIdentity::from_cert_chain(chain).ok()?),
+            Box::new(signing_key),
+        )
+        .signer(server_hello.signature_schemes())
     }
 
     fn supported_certificate_types(&self) -> &'static [CertificateType] {
