@@ -11,9 +11,10 @@ mod client {
     };
 
     use rustls::{
-        CertificateType, ClientConfig, ClientConnection, PeerIdentity, RootCertStore, Stream,
+        ClientConfig, ClientConnection, RootCertStore, Stream,
         client::{ClientCredentialResolver, CredentialRequest},
-        sign::{CertifiedKey, CertifiedSigner},
+        crypto::{Credentials, Identity, SelectedCredential},
+        enums::CertificateType,
     };
     use rustls_pki_types::CertificateDer;
 
@@ -41,10 +42,10 @@ mod client {
     }
 
     impl ClientCredentialResolver for ClientCertResolver {
-        fn resolve(&self, server_hello: &CredentialRequest) -> Option<CertifiedSigner> {
+        fn resolve(&self, server_hello: &CredentialRequest) -> Option<SelectedCredential> {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
-            CertifiedKey::new_unchecked(
-                Arc::new(PeerIdentity::from_cert_chain(chain).ok()?),
+            Credentials::new_unchecked(
+                Arc::new(Identity::from_cert_chain(chain).ok()?),
                 Box::new(signing_key),
             )
             .signer(server_hello.signature_schemes())
@@ -98,9 +99,9 @@ mod server {
     };
 
     use rustls::{
-        PeerIdentity, RootCertStore, ServerConfig, ServerConnection, Stream,
+        RootCertStore, ServerConfig, ServerConnection, Stream,
+        crypto::{Credentials, Identity, SelectedCredential},
         server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
-        sign::{CertifiedKey, CertifiedSigner},
     };
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
@@ -108,7 +109,7 @@ mod server {
     pub struct ServerCertResolver(CertStore);
 
     impl ServerCredentialResolver for ServerCertResolver {
-        fn resolve(&self, client_hello: &ClientHello) -> Result<CertifiedSigner, rustls::Error> {
+        fn resolve(&self, client_hello: &ClientHello) -> Result<SelectedCredential, rustls::Error> {
             let name = client_hello
                 .server_name()
                 .ok_or_else(|| rustls::Error::NoSuitableCertificate)?;
@@ -131,12 +132,9 @@ mod server {
                 .map_err(|_| rustls::Error::NoSuitableCertificate)?;
             let certs = chain.into_iter().map(Into::into).collect();
 
-            CertifiedKey::new_unchecked(
-                Arc::new(PeerIdentity::from_cert_chain(certs)?),
-                Box::new(key),
-            )
-            .signer(client_hello.signature_schemes())
-            .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
+            Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(certs)?), Box::new(key))
+                .signer(client_hello.signature_schemes())
+                .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
         }
     }
 

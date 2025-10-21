@@ -7,9 +7,9 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    PeerIdentity, RootCertStore, ServerConfig, ServerConnection, Stream,
+    RootCertStore, ServerConfig, ServerConnection, Stream,
+    crypto::{Credentials, Identity, SelectedCredential},
     server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
-    sign::{CertifiedKey, CertifiedSigner},
 };
 use rustls_cng::{
     signer::CngSigningKey,
@@ -53,7 +53,7 @@ pub struct ServerCertResolver {
 }
 
 impl ServerCredentialResolver for ServerCertResolver {
-    fn resolve(&self, client_hello: &ClientHello) -> Result<CertifiedSigner, rustls::Error> {
+    fn resolve(&self, client_hello: &ClientHello) -> Result<SelectedCredential, rustls::Error> {
         println!("Client hello server name: {:?}", client_hello.server_name());
         let name = client_hello
             .server_name()
@@ -83,12 +83,9 @@ impl ServerCredentialResolver for ServerCertResolver {
             .map_err(|_| rustls::Error::NoSuitableCertificate)?;
         let certs = chain.into_iter().map(Into::into).collect();
 
-        CertifiedKey::new_unchecked(
-            Arc::new(PeerIdentity::from_cert_chain(certs)?),
-            Box::new(key),
-        )
-        .signer(client_hello.signature_schemes())
-        .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
+        Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(certs)?), Box::new(key))
+            .signer(client_hello.signature_schemes())
+            .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
     }
 }
 

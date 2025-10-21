@@ -3,8 +3,9 @@
 use std::sync::Arc;
 
 use rustls::{
-    Error, OtherError, SignatureAlgorithm, SignatureScheme,
-    sign::{Signer, SigningKey},
+    crypto::{Signer, SigningKey},
+    enums::{SignatureAlgorithm, SignatureScheme},
+    error::{Error, OtherError},
 };
 use rustls_pki_types::SubjectPublicKeyInfoDer;
 use windows_sys::Win32::Security::Cryptography::{
