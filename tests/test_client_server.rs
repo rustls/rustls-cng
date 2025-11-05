@@ -10,11 +10,10 @@ mod client {
         sync::Arc,
     };
 
-    use rustls::crypto::CryptoProvider;
     use rustls::{
         ClientConfig, ClientConnection, RootCertStore, Stream,
         client::{ClientCredentialResolver, CredentialRequest},
-        crypto::{Credentials, Identity, SelectedCredential},
+        crypto::{Credentials, Identity, SelectedCredential, aws_lc_rs},
         enums::CertificateType,
     };
     use rustls_pki_types::CertificateDer;
@@ -66,13 +65,12 @@ mod client {
         let mut root_store = RootCertStore::empty();
         root_store.add(ca_cert.as_der().into())?;
 
-        let client_config =
-            ClientConfig::builder(Arc::new(CryptoProvider::from_crate_features().unwrap()))
-                .with_root_certificates(root_store)
-                .with_client_credential_resolver(Arc::new(ClientCertResolver(
-                    store,
-                    "rustls-client".to_string(),
-                )))?;
+        let client_config = ClientConfig::builder(Arc::new(aws_lc_rs::DEFAULT_PROVIDER))
+            .with_root_certificates(root_store)
+            .with_client_credential_resolver(Arc::new(ClientCertResolver(
+                store,
+                "rustls-client".to_string(),
+            )))?;
 
         let mut connection =
             ClientConnection::new(Arc::new(client_config), "rustls-server".try_into()?)?;
@@ -100,10 +98,9 @@ mod server {
         sync::{Arc, mpsc::Sender},
     };
 
-    use rustls::crypto::CryptoProvider;
     use rustls::{
         RootCertStore, ServerConfig, ServerConnection, Stream,
-        crypto::{Credentials, Identity, SelectedCredential},
+        crypto::{Credentials, Identity, SelectedCredential, aws_lc_rs},
         server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
     };
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
@@ -164,16 +161,13 @@ mod server {
         let mut root_store = RootCertStore::empty();
         root_store.add(ca_cert.as_der().into())?;
 
-        let verifier = WebPkiClientVerifier::builder(
-            Arc::new(root_store),
-            &CryptoProvider::from_crate_features().unwrap(),
-        )
-        .build()?;
+        let verifier =
+            WebPkiClientVerifier::builder(Arc::new(root_store), &aws_lc_rs::DEFAULT_PROVIDER)
+                .build()?;
 
-        let server_config =
-            ServerConfig::builder(Arc::new(CryptoProvider::from_crate_features().unwrap()))
-                .with_client_cert_verifier(verifier)
-                .with_server_credential_resolver(Arc::new(ServerCertResolver(store)))?;
+        let server_config = ServerConfig::builder(Arc::new(aws_lc_rs::DEFAULT_PROVIDER))
+            .with_client_cert_verifier(verifier)
+            .with_server_credential_resolver(Arc::new(ServerCertResolver(store)))?;
 
         let server = TcpListener::bind("127.0.0.1:0")?;
 

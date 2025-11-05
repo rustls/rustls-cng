@@ -6,10 +6,9 @@ use std::{
 };
 
 use clap::Parser;
-use rustls::crypto::CryptoProvider;
 use rustls::{
     RootCertStore, ServerConfig, ServerConnection, Stream,
-    crypto::{Credentials, Identity, SelectedCredential},
+    crypto::{Credentials, Identity, SelectedCredential, aws_lc_rs},
     server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
 };
 use rustls_cng::{
@@ -144,19 +143,16 @@ fn main() -> anyhow::Result<()> {
     let mut root_store = RootCertStore::empty();
     root_store.add(ca_cert.as_der().into())?;
 
-    let verifier = WebPkiClientVerifier::builder(
-        Arc::new(root_store),
-        &CryptoProvider::from_crate_features().unwrap(),
-    )
-    .build()?;
+    let verifier =
+        WebPkiClientVerifier::builder(Arc::new(root_store), &aws_lc_rs::DEFAULT_PROVIDER)
+            .build()?;
 
-    let server_config =
-        ServerConfig::builder(Arc::new(CryptoProvider::from_crate_features().unwrap()))
-            .with_client_cert_verifier(verifier)
-            .with_server_credential_resolver(Arc::new(ServerCertResolver {
-                store,
-                pin: params.password.clone(),
-            }))?;
+    let server_config = ServerConfig::builder(Arc::new(aws_lc_rs::DEFAULT_PROVIDER))
+        .with_client_cert_verifier(verifier)
+        .with_server_credential_resolver(Arc::new(ServerCertResolver {
+            store,
+            pin: params.password.clone(),
+        }))?;
 
     let server = TcpListener::bind(format!("0.0.0.0:{PORT}"))?;
 
