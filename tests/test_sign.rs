@@ -1,7 +1,4 @@
-use rustls::{
-    crypto::SigningKey,
-    enums::{SignatureAlgorithm, SignatureScheme},
-};
+use rustls::{crypto::SigningKey, enums::SignatureScheme};
 use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
 const PFX: &[u8] = include_bytes!("assets/rustls-ec.p12");
@@ -32,7 +29,6 @@ fn test_sign() {
 
     let key = context.acquire_key(true).unwrap();
     let signing_key = CngSigningKey::new(key).unwrap();
-    assert_eq!(signing_key.algorithm(), SignatureAlgorithm::ECDSA);
     let signer = signing_key.choose_scheme(&offered).unwrap();
     assert_eq!(signer.scheme(), SignatureScheme::ECDSA_NISTP384_SHA384);
 

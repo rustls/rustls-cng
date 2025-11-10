@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use rustls::{
     crypto::{Signer, SigningKey},
-    enums::{SignatureAlgorithm, SignatureScheme},
+    enums::SignatureScheme,
     error::{Error, OtherError},
 };
 use rustls_pki_types::SubjectPublicKeyInfoDer;
@@ -195,13 +195,6 @@ impl SigningKey for CngSigningKey {
 
     fn public_key(&self) -> Option<SubjectPublicKeyInfoDer<'_>> {
         None
-    }
-
-    fn algorithm(&self) -> SignatureAlgorithm {
-        match self.algorithm_group {
-            AlgorithmGroup::Rsa => SignatureAlgorithm::RSA,
-            AlgorithmGroup::Ecdsa | AlgorithmGroup::Ecdh => SignatureAlgorithm::ECDSA,
-        }
     }
 }
 
