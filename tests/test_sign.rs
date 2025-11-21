@@ -1,4 +1,4 @@
-use rustls::{crypto::SigningKey, enums::SignatureScheme};
+use rustls::crypto::{SignatureScheme, SigningKey};
 use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
 const PFX: &[u8] = include_bytes!("assets/rustls-ec.p12");
