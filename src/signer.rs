@@ -126,6 +126,7 @@ impl CngSigningKey {
             AlgorithmGroup::Ecdsa | AlgorithmGroup::Ecdh => match self.bits {
                 256 => &[SignatureScheme::ECDSA_NISTP256_SHA256],
                 384 => &[SignatureScheme::ECDSA_NISTP384_SHA384],
+                521 => &[SignatureScheme::ECDSA_NISTP521_SHA512],
                 _ => &[],
             },
         }
@@ -159,6 +160,9 @@ impl CngSigner {
             }
             SignatureScheme::ECDSA_NISTP384_SHA384 => {
                 (BCRYPT_SHA384_ALG_HANDLE, SignaturePadding::None)
+            }
+            SignatureScheme::ECDSA_NISTP521_SHA512 => {
+                (BCRYPT_SHA512_ALG_HANDLE, SignaturePadding::None)
             }
             _ => return Err(Error::General("Unsupported signature scheme".to_owned())),
         };
