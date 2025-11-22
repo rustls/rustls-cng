@@ -29,20 +29,14 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
         s = &s[1..];
     }
 
-    // Do we need to pad the r and s parts?
     let r_sign: &[u8] = if r[0] >= 0x80 { &[0] } else { &[] };
     let s_sign: &[u8] = if s[0] >= 0x80 { &[0] } else { &[] };
 
-    // Length of the value, i.e excluding the tag and length bytes
-    // For longer signatures the 4  Tag-LENGTH bytes are not enough, but we assume that the signature is less than 252 bytes.
     let v_length = 4 + r_sign.len() + s_sign.len() + r.len() + s.len();
 
-    // Do we use short or long form for the length?
     let (short_form, length_len) = if v_length <= 0x80 {
-        // Short form, one octet
         (true, 1)
     } else {
-        // Long form, first octet is the number of length octets
         let mut v_length = v_length;
         let mut length_len = 0;
         while v_length > 0 {
@@ -59,9 +53,9 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
     if short_form {
         der.push(v_length as u8); // LENGTH - short form
     } else {
-        der.push(0x80 | length_len as u8); // LENGTH - initial octet of long form
+        der.push(0x80 | length_len as u8);
         for i in (0..length_len).rev() {
-            der.push((v_length >> (i * 8)) as u8); // LENGTH - long form octets
+            der.push((v_length >> (i * 8)) as u8);
         }
     }
 
