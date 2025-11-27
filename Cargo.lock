@@ -506,7 +506,7 @@ checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
 [[package]]
 name = "rustls"
 version = "0.24.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#534c3593384cabf84af55b62df804e92129085b2"
+source = "git+https://github.com/rustls/rustls.git#1f51a0ddb8645a95d0da37b215352510e4c37972"
 dependencies = [
  "aws-lc-rs",
  "brotli",
@@ -543,9 +543,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.104.0-alpha.1"
+version = "0.104.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9655b87b6a80dd6577dc97b247eb2e52bc2a8479e65e31f233f1e0a8ef14b3bc"
+checksum = "d58d0ba9664baf780379001ecb183f4b95dabec82d464bff14173dee21bf49e3"
 dependencies = [
  "aws-lc-rs",
  "ring",
@@ -573,9 +573,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.110"
+version = "2.0.111"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a99801b5bd34ede4cf3fc688c5919368fea4e4814a4664359503e6015b280aea"
+checksum = "390cc9a294ab71bdb1aa2e99d13be9c753cd2d7bd6560c77118597410c4d2e87"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -1,10 +1,3 @@
-use std::{
-    io::{Read, Write},
-    net::{Shutdown, TcpStream},
-    path::PathBuf,
-    sync::Arc,
-};
-
 use clap::Parser;
 use rustls::{
     ClientConfig, ClientConnection, RootCertStore, Stream,
@@ -13,6 +6,13 @@ use rustls::{
     enums::CertificateType,
 };
 use rustls_pki_types::{CertificateDer, ServerName};
+use std::hash::Hasher;
+use std::{
+    io::{Read, Write},
+    net::{Shutdown, TcpStream},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use rustls_cng::{
     signer::CngSigningKey,
@@ -63,6 +63,8 @@ impl ClientCredentialResolver for ClientCertResolver {
     fn supported_certificate_types(&self) -> &'static [CertificateType] {
         &[CertificateType::X509]
     }
+
+    fn hash_config(&self, _: &mut dyn Hasher) {}
 }
 
 #[derive(Parser)]

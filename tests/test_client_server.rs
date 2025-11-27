@@ -4,12 +4,6 @@ const SERVER_PFX: &[u8] = include_bytes!("assets/rustls-server.pfx");
 const PASSWORD: &str = "changeit";
 
 mod client {
-    use std::{
-        io::{Read, Write},
-        net::{Shutdown, TcpStream},
-        sync::Arc,
-    };
-
     use rustls::{
         ClientConfig, ClientConnection, RootCertStore, Stream,
         client::{ClientCredentialResolver, CredentialRequest},
@@ -17,6 +11,12 @@ mod client {
         enums::CertificateType,
     };
     use rustls_pki_types::CertificateDer;
+    use std::hash::Hasher;
+    use std::{
+        io::{Read, Write},
+        net::{Shutdown, TcpStream},
+        sync::Arc,
+    };
 
     use rustls_cng::{signer::CngSigningKey, store::CertStore};
 
@@ -54,6 +54,8 @@ mod client {
         fn supported_certificate_types(&self) -> &'static [CertificateType] {
             &[CertificateType::X509]
         }
+
+        fn hash_config(&self, _: &mut dyn Hasher) {}
     }
 
     pub fn run_client(port: u16) -> anyhow::Result<()> {
