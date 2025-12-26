@@ -12,6 +12,7 @@ use rustls::{
     RootCertStore, ServerConfig, ServerConnection, Stream,
 };
 
+use rustls_cng::store::Pkcs12Flags;
 use rustls_cng::{
     signer::CngSigningKey,
     store::{CertStore, CertStoreType},
@@ -132,7 +133,11 @@ fn main() -> anyhow::Result<()> {
 
     let store = if let Some(ref keystore) = params.keystore {
         let data = std::fs::read(keystore)?;
-        CertStore::from_pkcs12(&data, params.password.as_deref().unwrap_or_default())?
+        CertStore::from_pkcs12(
+            &data,
+            params.password.as_deref().unwrap_or_default(),
+            Pkcs12Flags::default(),
+        )?
     } else {
         CertStore::open(CertStoreType::CurrentUser, "my")?
     };

@@ -16,7 +16,10 @@ mod client {
     };
     use rustls_pki_types::CertificateDer;
 
-    use rustls_cng::{signer::CngSigningKey, store::CertStore};
+    use rustls_cng::{
+        signer::CngSigningKey,
+        store::{CertStore, Pkcs12Flags},
+    };
 
     #[derive(Debug)]
     pub struct ClientCertResolver(CertStore, String);
@@ -64,7 +67,8 @@ mod client {
     }
 
     pub fn run_client(port: u16) -> anyhow::Result<()> {
-        let store = CertStore::from_pkcs12(super::CLIENT_PFX, super::PASSWORD)?;
+        let store =
+            CertStore::from_pkcs12(super::CLIENT_PFX, super::PASSWORD, Pkcs12Flags::default())?;
 
         let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();
@@ -110,8 +114,10 @@ mod server {
         sign::CertifiedKey,
         RootCertStore, ServerConfig, ServerConnection, Stream,
     };
-
-    use rustls_cng::{signer::CngSigningKey, store::CertStore};
+    use rustls_cng::{
+        signer::CngSigningKey,
+        store::{CertStore, Pkcs12Flags},
+    };
 
     #[derive(Debug)]
     pub struct ServerCertResolver(CertStore);
@@ -153,7 +159,8 @@ mod server {
     }
 
     pub fn run_server(sender: Sender<u16>) -> anyhow::Result<()> {
-        let store = CertStore::from_pkcs12(super::SERVER_PFX, super::PASSWORD)?;
+        let store =
+            CertStore::from_pkcs12(super::SERVER_PFX, super::PASSWORD, Pkcs12Flags::default())?;
 
         let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();
