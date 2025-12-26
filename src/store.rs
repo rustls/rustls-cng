@@ -30,7 +30,7 @@ bitflags! {
         const PREFER_CNG_KSP = 0x0000_0100;
         const ALWAYS_CNG_KSP = 0x0000_0200;
         const ALLOW_OVERWRITE_KEY = 0x0000_4000;
-        const NO_PERSIST_KEY =0x0000_8000;
+        const NO_PERSIST_KEY = 0x0000_8000;
     }
 }
 
