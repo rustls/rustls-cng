@@ -1,7 +1,7 @@
 //! Windows certificate store wrapper
 
+use bitflags::bitflags;
 use std::{os::raw::c_void, ptr};
-
 use windows_sys::Win32::Security::Cryptography::*;
 
 use crate::{Result, cert::CertContext, error::CngError};
@@ -20,6 +20,24 @@ pub enum CertStoreType {
     LocalMachine,
     CurrentUser,
     CurrentService,
+}
+
+bitflags! {
+    /// Set of flags to pass to the ` CertStore::from_pkcs12 ` method.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct Pkcs12Flags: u32 {
+        const INCLUDE_EXTENDED_PROPERTIES = 0x0010;
+        const PREFER_CNG_KSP = 0x0000_0100;
+        const ALWAYS_CNG_KSP = 0x0000_0200;
+        const ALLOW_OVERWRITE_KEY = 0x0000_4000;
+        const NO_PERSIST_KEY =0x0000_8000;
+    }
+}
+
+impl Default for Pkcs12Flags {
+    fn default() -> Self {
+        Pkcs12Flags::INCLUDE_EXTENDED_PROPERTIES | Pkcs12Flags::PREFER_CNG_KSP
+    }
 }
 
 impl CertStoreType {
@@ -71,7 +89,7 @@ impl CertStore {
     }
 
     /// Import certificate store from PKCS12 file
-    pub fn from_pkcs12(data: &[u8], password: &str) -> Result<CertStore> {
+    pub fn from_pkcs12(data: &[u8], password: &str, flags: Pkcs12Flags) -> Result<CertStore> {
         unsafe {
             let blob = CRYPT_INTEGER_BLOB {
                 cbData: data.len() as u32,
@@ -79,11 +97,8 @@ impl CertStore {
             };
 
             let password = utf16z!(password);
-            let store = PFXImportCertStore(
-                &blob,
-                password.as_ptr(),
-                CRYPT_EXPORTABLE | PKCS12_INCLUDE_EXTENDED_PROPERTIES | PKCS12_PREFER_CNG_KSP,
-            );
+            let store =
+                PFXImportCertStore(&blob, password.as_ptr(), CRYPT_EXPORTABLE | flags.bits());
             if store.is_null() {
                 Err(CngError::from_win32_error())
             } else {
