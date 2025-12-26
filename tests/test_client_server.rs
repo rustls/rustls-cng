@@ -4,6 +4,13 @@ const SERVER_PFX: &[u8] = include_bytes!("assets/rustls-server.pfx");
 const PASSWORD: &str = "changeit";
 
 mod client {
+    use std::{
+        hash::Hasher,
+        io::{Read, Write},
+        net::{Shutdown, TcpStream},
+        sync::Arc,
+    };
+
     use rustls::{
         ClientConfig, ClientConnection, RootCertStore, Stream,
         client::{ClientCredentialResolver, CredentialRequest},
@@ -11,14 +18,11 @@ mod client {
         enums::CertificateType,
     };
     use rustls_pki_types::CertificateDer;
-    use std::hash::Hasher;
-    use std::{
-        io::{Read, Write},
-        net::{Shutdown, TcpStream},
-        sync::Arc,
-    };
 
-    use rustls_cng::{signer::CngSigningKey, store::CertStore};
+    use rustls_cng::{
+        signer::CngSigningKey,
+        store::{CertStore, Pkcs12Flags},
+    };
 
     #[derive(Debug)]
     pub struct ClientCertResolver(CertStore, String);
@@ -59,7 +63,8 @@ mod client {
     }
 
     pub fn run_client(port: u16) -> anyhow::Result<()> {
-        let store = CertStore::from_pkcs12(super::CLIENT_PFX, super::PASSWORD)?;
+        let store =
+            CertStore::from_pkcs12(super::CLIENT_PFX, super::PASSWORD, Pkcs12Flags::default())?;
 
         let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();
@@ -105,7 +110,10 @@ mod server {
         crypto::{Credentials, Identity, SelectedCredential, aws_lc_rs},
         server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
     };
-    use rustls_cng::{signer::CngSigningKey, store::CertStore};
+    use rustls_cng::{
+        signer::CngSigningKey,
+        store::{CertStore, Pkcs12Flags},
+    };
 
     #[derive(Debug)]
     pub struct ServerCertResolver(CertStore);
@@ -155,7 +163,8 @@ mod server {
     }
 
     pub fn run_server(sender: Sender<u16>) -> anyhow::Result<()> {
-        let store = CertStore::from_pkcs12(super::SERVER_PFX, super::PASSWORD)?;
+        let store =
+            CertStore::from_pkcs12(super::SERVER_PFX, super::PASSWORD, Pkcs12Flags::default())?;
 
         let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();

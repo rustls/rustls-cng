@@ -1,3 +1,11 @@
+use std::{
+    hash::Hasher,
+    io::{Read, Write},
+    net::{Shutdown, TcpStream},
+    path::PathBuf,
+    sync::Arc,
+};
+
 use clap::Parser;
 use rustls::{
     ClientConfig, ClientConnection, RootCertStore, Stream,
@@ -6,17 +14,10 @@ use rustls::{
     enums::CertificateType,
 };
 use rustls_pki_types::{CertificateDer, ServerName};
-use std::hash::Hasher;
-use std::{
-    io::{Read, Write},
-    net::{Shutdown, TcpStream},
-    path::PathBuf,
-    sync::Arc,
-};
 
 use rustls_cng::{
     signer::CngSigningKey,
-    store::{CertStore, CertStoreType},
+    store::{CertStore, CertStoreType, Pkcs12Flags},
 };
 
 const PORT: u16 = 8000;
@@ -110,7 +111,11 @@ fn main() -> anyhow::Result<()> {
 
     let store = if let Some(ref keystore) = params.keystore {
         let data = std::fs::read(keystore)?;
-        CertStore::from_pkcs12(&data, params.password.as_deref().unwrap_or_default())?
+        CertStore::from_pkcs12(
+            &data,
+            params.password.as_deref().unwrap_or_default(),
+            Pkcs12Flags::default(),
+        )?
     } else {
         CertStore::open(CertStoreType::CurrentUser, "my")?
     };

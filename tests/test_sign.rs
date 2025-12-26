@@ -1,5 +1,8 @@
 use rustls::crypto::{SignatureScheme, SigningKey};
-use rustls_cng::{signer::CngSigningKey, store::CertStore};
+use rustls_cng::{
+    signer::CngSigningKey,
+    store::{CertStore, Pkcs12Flags},
+};
 
 const PFX: &[u8] = include_bytes!("assets/rustls-ec.p12");
 const PASSWORD: &str = "changeit";
@@ -7,7 +10,8 @@ const MESSAGE: &str = "Security is our business";
 
 #[test]
 fn test_sign() {
-    let store = CertStore::from_pkcs12(PFX, PASSWORD).expect("Cannot open cert store");
+    let store = CertStore::from_pkcs12(PFX, PASSWORD, Pkcs12Flags::default())
+        .expect("Cannot open cert store");
 
     let context = store
         .find_by_subject_str("rustls")
