@@ -101,7 +101,7 @@ impl CngSigningKey {
         &self.algorithm_group
     }
 
-    /// Return number of bits in the key material
+    /// Return a number of bits in the key material
     pub fn bits(&self) -> u32 {
         self.bits
     }

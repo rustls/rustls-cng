@@ -69,7 +69,7 @@ impl CertStore {
         self.0
     }
 
-    /// Open certificate store of the given type and name
+    /// Open a certificate store of the given type and name
     pub fn open(store_type: CertStoreType, store_name: &str) -> Result<CertStore> {
         unsafe {
             let store_name = utf16z!(store_name);
@@ -88,7 +88,7 @@ impl CertStore {
         }
     }
 
-    /// Import certificate store from PKCS12 file
+    /// Import certificate store from a PKCS12 file
     pub fn from_pkcs12(data: &[u8], password: &str, flags: Pkcs12Flags) -> Result<CertStore> {
         unsafe {
             let blob = CRYPT_INTEGER_BLOB {
@@ -107,7 +107,7 @@ impl CertStore {
         }
     }
 
-    /// Find list of certificates matching the subject substring
+    /// Find a list of certificates matching the subject substring
     pub fn find_by_subject_str<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
@@ -115,7 +115,7 @@ impl CertStore {
         self.find_by_str(subject.as_ref(), CERT_FIND_SUBJECT_STR)
     }
 
-    /// Find list of certificates matching the exact subject name
+    /// Find a list of certificates matching the exact subject name
     pub fn find_by_subject_name<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
@@ -123,7 +123,7 @@ impl CertStore {
         self.find_by_name(subject.as_ref(), CERT_FIND_SUBJECT_NAME)
     }
 
-    /// Find list of certificates matching the issuer substring
+    /// Find a list of certificates matching the issuer substring
     pub fn find_by_issuer_str<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
@@ -131,7 +131,7 @@ impl CertStore {
         self.find_by_str(subject.as_ref(), CERT_FIND_ISSUER_STR)
     }
 
-    /// Find list of certificates matching the exact issuer name
+    /// Find a list of certificates matching the exact issuer name
     pub fn find_by_issuer_name<S>(&self, subject: S) -> Result<Vec<CertContext>>
     where
         S: AsRef<str>,
@@ -139,7 +139,7 @@ impl CertStore {
         self.find_by_name(subject.as_ref(), CERT_FIND_ISSUER_NAME)
     }
 
-    /// Find list of certificates matching the SHA1 hash
+    /// Find a list of certificates matching the SHA1 hash
     pub fn find_by_sha1<D>(&self, hash: D) -> Result<Vec<CertContext>>
     where
         D: AsRef<[u8]>,
@@ -158,7 +158,7 @@ impl CertStore {
     // Also, since SHA1 is being deprecated, Windows components should not use.
     // Therefore, the need to find via SHA256 instead of SHA1.
 
-    /// Find list of certificates matching the SHA256 hash
+    /// Find a list of certificates matching the SHA256 hash
     pub fn find_by_sha256<D>(&self, hash: D) -> Result<Vec<CertContext>>
     where
         D: AsRef<[u8]>,
@@ -170,7 +170,7 @@ impl CertStore {
         unsafe { self.do_find_by_sha256_property(&hash_blob as *const _ as _) }
     }
 
-    /// Find list of certificates matching the key identifier
+    /// Find a list of certificates matching the key identifier
     pub fn find_by_key_id<D>(&self, key_id: D) -> Result<Vec<CertContext>>
     where
         D: AsRef<[u8]>,
