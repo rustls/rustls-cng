@@ -153,7 +153,7 @@ fn main() -> anyhow::Result<()> {
             .build()?;
 
     let server_config = ServerConfig::builder(Arc::new(aws_lc_rs::DEFAULT_PROVIDER))
-        .with_client_cert_verifier(verifier)
+        .with_client_cert_verifier(Arc::new(verifier))
         .with_server_credential_resolver(Arc::new(ServerCertResolver {
             store,
             pin: params.password.clone(),

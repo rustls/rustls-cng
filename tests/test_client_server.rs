@@ -177,7 +177,7 @@ mod server {
                 .build()?;
 
         let server_config = ServerConfig::builder(Arc::new(aws_lc_rs::DEFAULT_PROVIDER))
-            .with_client_cert_verifier(verifier)
+            .with_client_cert_verifier(Arc::new(verifier))
             .with_server_credential_resolver(Arc::new(ServerCertResolver(store)))?;
 
         let server = TcpListener::bind("127.0.0.1:0")?;
