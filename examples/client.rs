@@ -13,12 +13,11 @@ use rustls::{
     crypto::{Credentials, Identity, SelectedCredential},
     enums::CertificateType,
 };
-use rustls_pki_types::{CertificateDer, ServerName};
-
 use rustls_cng::{
     signer::CngSigningKey,
     store::{CertStore, CertStoreType, Pkcs12Flags},
 };
+use rustls_pki_types::{CertificateDer, ServerName};
 
 const PORT: u16 = 8000;
 
@@ -32,18 +31,14 @@ pub struct ClientCertResolver {
 fn get_chain(
     store: &CertStore,
     name: &str,
-) -> anyhow::Result<(Vec<CertificateDer<'static>>, CngSigningKey)> {
+) -> Result<(Vec<CertificateDer<'static>>, CngSigningKey), Box<dyn std::error::Error>> {
     let contexts = store.find_by_subject_str(name)?;
     let context = contexts
         .first()
-        .ok_or_else(|| anyhow::Error::msg("No client cert"))?;
+        .ok_or_else(|| std::io::Error::other("No client cert"))?;
     let key = context.acquire_key(true)?;
     let signing_key = CngSigningKey::new(key)?;
-    let chain = context
-        .as_chain_der()?
-        .into_iter()
-        .map(Into::into)
-        .collect();
+    let chain = context.as_chain_der()?.into_iter().map(Into::into).collect();
     Ok((chain, signing_key))
 }
 
@@ -54,11 +49,8 @@ impl ClientCredentialResolver for ClientCertResolver {
         if let Some(ref pin) = self.pin {
             signing_key.key().set_pin(pin).ok()?;
         }
-        Credentials::new_unchecked(
-            Arc::new(Identity::from_cert_chain(chain).ok()?),
-            Box::new(signing_key),
-        )
-        .signer(server_hello.signature_schemes())
+        Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(chain).ok()?), Box::new(signing_key))
+            .signer(server_hello.signature_schemes())
     }
 
     fn supported_certificate_types(&self) -> &'static [CertificateType] {
@@ -71,42 +63,26 @@ impl ClientCredentialResolver for ClientCertResolver {
 #[derive(Parser)]
 #[clap(name = "rustls-client-sample")]
 struct AppParams {
-    #[clap(
-        short = 'c',
-        long = "ca-cert",
-        help = "CA cert name to verify the peer certificate"
-    )]
-    ca_cert: String,
+    #[clap(short = 'c', long = "ca-cert", help = "CA cert name to verify the peer certificate")]
+    ca_cert: Option<String>,
 
     #[clap(short = 'k', long = "keystore", help = "Use external PFX keystore")]
     keystore: Option<PathBuf>,
 
-    #[clap(
-        short = 'p',
-        long = "password",
-        help = "Keystore password or token pin"
-    )]
+    #[clap(short = 'p', long = "password", help = "Keystore password or token pin")]
     password: Option<String>,
 
-    #[clap(
-        short = 's',
-        long = "server-name",
-        help = "Server name for TLS SNI extension"
-    )]
-    server_name: String,
+    #[clap(short = 's', long = "server-name", help = "Server name for TLS SNI extension")]
+    server_name: Option<String>,
 
-    #[clap(
-        short = 'l',
-        long = "client-cert",
-        help = "Client cert name for client auth"
-    )]
-    client_cert: String,
+    #[clap(short = 'l', long = "client-cert", help = "Client cert name for client auth")]
+    client_cert: Option<String>,
 
     #[clap(help = "Server address")]
     server_address: String,
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let params: AppParams = AppParams::parse();
 
     let store = if let Some(ref keystore) = params.keystore {
@@ -120,21 +96,31 @@ fn main() -> anyhow::Result<()> {
         CertStore::open(CertStoreType::CurrentUser, "my")?
     };
 
-    let ca_cert_context = store.find_by_subject_str(&params.ca_cert)?;
-    let ca_cert = ca_cert_context.first().unwrap();
-
     let mut root_store = RootCertStore::empty();
-    root_store.add(ca_cert.as_der().into())?;
+    root_store.add_parsable_certificates(rustls_native_certs::load_native_certs().certs);
 
-    let client_config = ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
-        .with_root_certificates(root_store)
-        .with_client_credential_resolver(Arc::new(ClientCertResolver {
+    if let Some(ca_cert) = params.ca_cert {
+        let ca_cert_context = store.find_by_subject_str(&ca_cert)?;
+        let ca_cert = ca_cert_context.first().unwrap();
+
+        root_store.add(ca_cert.as_der().into())?;
+    }
+
+    let builder =
+        ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER)).with_root_certificates(root_store);
+
+    let client_config = if let Some(client_cert) = params.client_cert {
+        builder.with_client_credential_resolver(Arc::new(ClientCertResolver {
             store,
-            cert_name: params.client_cert.clone(),
+            cert_name: client_cert.clone(),
             pin: params.password.clone(),
-        }))?;
+        }))?
+    } else {
+        builder.with_no_client_auth()?
+    };
 
-    let server_name = ServerName::try_from(params.server_name.as_str())?.to_owned();
+    let server_name = ServerName::try_from(params.server_name.as_deref().unwrap_or(&params.server_address))?.to_owned();
+
     let mut connection = ClientConnection::new(Arc::new(client_config), server_name)?;
     let mut client = TcpStream::connect(format!("{}:{}", params.server_address, PORT))?;
 

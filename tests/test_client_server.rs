@@ -17,12 +17,11 @@ mod client {
         crypto::{Credentials, Identity, SelectedCredential},
         enums::CertificateType,
     };
-    use rustls_pki_types::CertificateDer;
-
     use rustls_cng::{
         signer::CngSigningKey,
         store::{CertStore, Pkcs12Flags},
     };
+    use rustls_pki_types::CertificateDer;
 
     #[derive(Debug)]
     pub struct ClientCertResolver(CertStore, String);
@@ -30,29 +29,22 @@ mod client {
     fn get_chain(
         store: &CertStore,
         name: &str,
-    ) -> anyhow::Result<(Vec<CertificateDer<'static>>, CngSigningKey)> {
+    ) -> Result<(Vec<CertificateDer<'static>>, CngSigningKey), Box<dyn std::error::Error>> {
         let contexts = store.find_by_subject_str(name)?;
         let context = contexts
             .first()
-            .ok_or_else(|| anyhow::Error::msg("No client cert"))?;
+            .ok_or_else(|| std::io::Error::other("No client cert"))?;
         let key = context.acquire_key(true)?;
         let signing_key = CngSigningKey::new(key)?;
-        let chain = context
-            .as_chain_der()?
-            .into_iter()
-            .map(Into::into)
-            .collect();
+        let chain = context.as_chain_der()?.into_iter().map(Into::into).collect();
         Ok((chain, signing_key))
     }
 
     impl ClientCredentialResolver for ClientCertResolver {
         fn resolve(&self, server_hello: &CredentialRequest) -> Option<SelectedCredential> {
             let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
-            Credentials::new_unchecked(
-                Arc::new(Identity::from_cert_chain(chain).ok()?),
-                Box::new(signing_key),
-            )
-            .signer(server_hello.signature_schemes())
+            Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(chain).ok()?), Box::new(signing_key))
+                .signer(server_hello.signature_schemes())
         }
 
         fn supported_certificate_types(&self) -> &'static [CertificateType] {
@@ -62,9 +54,8 @@ mod client {
         fn hash_config(&self, _: &mut dyn Hasher) {}
     }
 
-    pub fn run_client(port: u16) -> anyhow::Result<()> {
-        let store =
-            CertStore::from_pkcs12(super::CLIENT_PFX, super::PASSWORD, Pkcs12Flags::default())?;
+    pub fn run_client(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+        let store = CertStore::from_pkcs12(super::CLIENT_PFX, super::PASSWORD, Pkcs12Flags::default())?;
 
         let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();
@@ -74,13 +65,9 @@ mod client {
 
         let client_config = ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
             .with_root_certificates(root_store)
-            .with_client_credential_resolver(Arc::new(ClientCertResolver(
-                store,
-                "rustls-client".to_string(),
-            )))?;
+            .with_client_credential_resolver(Arc::new(ClientCertResolver(store, "rustls-client".to_string())))?;
 
-        let mut connection =
-            ClientConnection::new(Arc::new(client_config), "rustls-server".try_into()?)?;
+        let mut connection = ClientConnection::new(Arc::new(client_config), "rustls-server".try_into()?)?;
 
         let mut client = TcpStream::connect(format!("localhost:{port}"))?;
 
@@ -148,7 +135,7 @@ mod server {
         }
     }
 
-    fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
+    fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
         let mut connection = ServerConnection::new(config)?;
         let mut tls_stream = Stream::new(&mut connection, &mut stream);
 
@@ -162,9 +149,8 @@ mod server {
         Ok(())
     }
 
-    pub fn run_server(sender: Sender<u16>) -> anyhow::Result<()> {
-        let store =
-            CertStore::from_pkcs12(super::SERVER_PFX, super::PASSWORD, Pkcs12Flags::default())?;
+    pub fn run_server(sender: Sender<u16>) -> Result<(), Box<dyn std::error::Error>> {
+        let store = CertStore::from_pkcs12(super::SERVER_PFX, super::PASSWORD, Pkcs12Flags::default())?;
 
         let ca_cert_context = store.find_by_subject_str(super::CA_SUBJECT)?;
         let ca_cert = ca_cert_context.first().unwrap();
@@ -172,11 +158,8 @@ mod server {
         let mut root_store = RootCertStore::empty();
         root_store.add(ca_cert.as_der().into())?;
 
-        let verifier = WebPkiClientVerifier::builder(
-            Arc::new(root_store),
-            &rustls_aws_lc_rs::DEFAULT_PROVIDER,
-        )
-        .build()?;
+        let verifier =
+            WebPkiClientVerifier::builder(Arc::new(root_store), &rustls_aws_lc_rs::DEFAULT_PROVIDER).build()?;
 
         let server_config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
             .with_client_cert_verifier(Arc::new(verifier))

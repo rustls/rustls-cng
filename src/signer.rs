@@ -137,27 +137,15 @@ impl CngSigner {
     // hash function using BCryptHash function which uses FIPS certified SymCrypt
     fn hash(&self, message: &[u8]) -> Result<(Vec<u8>, SignaturePadding), Error> {
         let (alg, padding) = match self.scheme {
-            SignatureScheme::RSA_PKCS1_SHA256 => {
-                (BCRYPT_SHA256_ALG_HANDLE, SignaturePadding::Pkcs1)
-            }
-            SignatureScheme::RSA_PKCS1_SHA384 => {
-                (BCRYPT_SHA384_ALG_HANDLE, SignaturePadding::Pkcs1)
-            }
-            SignatureScheme::RSA_PKCS1_SHA512 => {
-                (BCRYPT_SHA512_ALG_HANDLE, SignaturePadding::Pkcs1)
-            }
+            SignatureScheme::RSA_PKCS1_SHA256 => (BCRYPT_SHA256_ALG_HANDLE, SignaturePadding::Pkcs1),
+            SignatureScheme::RSA_PKCS1_SHA384 => (BCRYPT_SHA384_ALG_HANDLE, SignaturePadding::Pkcs1),
+            SignatureScheme::RSA_PKCS1_SHA512 => (BCRYPT_SHA512_ALG_HANDLE, SignaturePadding::Pkcs1),
             SignatureScheme::RSA_PSS_SHA256 => (BCRYPT_SHA256_ALG_HANDLE, SignaturePadding::Pss),
             SignatureScheme::RSA_PSS_SHA384 => (BCRYPT_SHA384_ALG_HANDLE, SignaturePadding::Pss),
             SignatureScheme::RSA_PSS_SHA512 => (BCRYPT_SHA512_ALG_HANDLE, SignaturePadding::Pss),
-            SignatureScheme::ECDSA_NISTP256_SHA256 => {
-                (BCRYPT_SHA256_ALG_HANDLE, SignaturePadding::None)
-            }
-            SignatureScheme::ECDSA_NISTP384_SHA384 => {
-                (BCRYPT_SHA384_ALG_HANDLE, SignaturePadding::None)
-            }
-            SignatureScheme::ECDSA_NISTP521_SHA512 => {
-                (BCRYPT_SHA512_ALG_HANDLE, SignaturePadding::None)
-            }
+            SignatureScheme::ECDSA_NISTP256_SHA256 => (BCRYPT_SHA256_ALG_HANDLE, SignaturePadding::None),
+            SignatureScheme::ECDSA_NISTP384_SHA384 => (BCRYPT_SHA384_ALG_HANDLE, SignaturePadding::None),
+            SignatureScheme::ECDSA_NISTP521_SHA512 => (BCRYPT_SHA512_ALG_HANDLE, SignaturePadding::None),
             _ => return Err(Error::General("Unsupported signature scheme".to_owned())),
         };
 
@@ -182,9 +170,7 @@ impl CngSigner {
             );
 
             if status != 0 {
-                return Err(Error::General(format!(
-                    "BCryptHash failed with status: 0x{status:X}"
-                )));
+                return Err(Error::General(format!("BCryptHash failed with status: 0x{status:X}")));
             }
         }
         Ok((hash, padding))
@@ -237,10 +223,7 @@ mod tests {
     fn test_p1363_to_der() {
         let p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
         let der = super::p1363_to_der(&p1363);
-        assert_eq!(
-            der,
-            [0x30, 0x0c, 0x02, 0x04, 1, 2, 3, 4, 0x02, 0x04, 5, 6, 7, 8]
-        )
+        assert_eq!(der, [0x30, 0x0c, 0x02, 0x04, 1, 2, 3, 4, 0x02, 0x04, 5, 6, 7, 8])
     }
 
     #[test]
@@ -249,9 +232,7 @@ mod tests {
         let der = super::p1363_to_der(&p1363);
         assert_eq!(
             der,
-            [
-                0x30, 0x0e, 0x02, 0x05, 0, 0x81, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8
-            ]
+            [0x30, 0x0e, 0x02, 0x05, 0, 0x81, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8]
         )
     }
 }

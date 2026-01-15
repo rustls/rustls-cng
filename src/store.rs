@@ -1,7 +1,8 @@
 //! Windows certificate store wrapper
 
-use bitflags::bitflags;
 use std::{os::raw::c_void, ptr};
+
+use bitflags::bitflags;
 use windows_sys::Win32::Security::Cryptography::*;
 
 use crate::{Result, cert::CertContext, error::CngError};
@@ -43,15 +44,9 @@ impl Default for Pkcs12Flags {
 impl CertStoreType {
     fn as_flags(&self) -> u32 {
         match self {
-            CertStoreType::LocalMachine => {
-                CERT_SYSTEM_STORE_LOCAL_MACHINE_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT
-            }
-            CertStoreType::CurrentUser => {
-                CERT_SYSTEM_STORE_CURRENT_USER_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT
-            }
-            CertStoreType::CurrentService => {
-                CERT_SYSTEM_STORE_CURRENT_SERVICE_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT
-            }
+            CertStoreType::LocalMachine => CERT_SYSTEM_STORE_LOCAL_MACHINE_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT,
+            CertStoreType::CurrentUser => CERT_SYSTEM_STORE_CURRENT_USER_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT,
+            CertStoreType::CurrentService => CERT_SYSTEM_STORE_CURRENT_SERVICE_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT,
         }
     }
 }
@@ -97,8 +92,7 @@ impl CertStore {
             };
 
             let password = utf16z!(password);
-            let store =
-                PFXImportCertStore(&blob, password.as_ptr(), CRYPT_EXPORTABLE | flags.bits());
+            let store = PFXImportCertStore(&blob, password.as_ptr(), CRYPT_EXPORTABLE | flags.bits());
             if store.is_null() {
                 Err(CngError::from_win32_error())
             } else {
@@ -192,25 +186,14 @@ impl CertStore {
         unsafe { self.do_find(CERT_FIND_ANY, ptr::null()) }
     }
 
-    unsafe fn do_find(
-        &self,
-        flags: CERT_FIND_FLAGS,
-        find_param: *const c_void,
-    ) -> Result<Vec<CertContext>> {
+    unsafe fn do_find(&self, flags: CERT_FIND_FLAGS, find_param: *const c_void) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
         unsafe {
             let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
 
             loop {
-                cert = CertFindCertificateInStore(
-                    self.0,
-                    MY_ENCODING_TYPE,
-                    0,
-                    flags,
-                    find_param,
-                    cert,
-                );
+                cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param, cert);
                 if cert.is_null() {
                     break;
                 } else {
@@ -223,26 +206,15 @@ impl CertStore {
         Ok(certs)
     }
 
-    unsafe fn do_find_by_sha256_property(
-        &self,
-        find_param: *const c_void,
-    ) -> Result<Vec<CertContext>> {
+    unsafe fn do_find_by_sha256_property(&self, find_param: *const c_void) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
         unsafe {
             let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
             let hash_blob = &*(find_param as *const CRYPT_INTEGER_BLOB);
-            let sha256_hash =
-                std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
+            let sha256_hash = std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
             loop {
-                cert = CertFindCertificateInStore(
-                    self.0,
-                    MY_ENCODING_TYPE,
-                    0,
-                    CERT_FIND_ANY,
-                    find_param,
-                    cert,
-                );
+                cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, CERT_FIND_ANY, find_param, cert);
                 if cert.is_null() {
                     break;
                 } else {

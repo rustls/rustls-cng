@@ -63,8 +63,7 @@ impl CertContext {
         let mut handle = HCRYPTPROV_OR_NCRYPT_KEY_HANDLE::default();
         let mut key_spec = CERT_KEY_SPEC::default();
 
-        let flags =
-            if silent { CRYPT_ACQUIRE_SILENT_FLAG } else { 0 } | CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG;
+        let flags = if silent { CRYPT_ACQUIRE_SILENT_FLAG } else { 0 } | CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG;
 
         unsafe {
             let result = CryptAcquireCertificatePrivateKey(
@@ -87,12 +86,7 @@ impl CertContext {
 
     /// Return DER-encoded X.509 certificate
     pub fn as_der(&self) -> &[u8] {
-        unsafe {
-            slice::from_raw_parts(
-                self.inner().pbCertEncoded,
-                self.inner().cbCertEncoded as usize,
-            )
-        }
+        unsafe { slice::from_raw_parts(self.inner().pbCertEncoded, self.inner().cbCertEncoded as usize) }
     }
 
     /// Return DER-encoded X.509 certificate chain.
@@ -136,16 +130,10 @@ impl CertContext {
 
                 if (*context).cChain > 0 {
                     let chain_ptr = *(*context).rgpChain;
-                    let elements = slice::from_raw_parts(
-                        (*chain_ptr).rgpElement,
-                        (*chain_ptr).cElement as usize,
-                    );
+                    let elements = slice::from_raw_parts((*chain_ptr).rgpElement, (*chain_ptr).cElement as usize);
 
                     for (index, element) in elements.iter().enumerate() {
-                        if index != 0
-                            && 0 != ((**element).TrustStatus.dwInfoStatus
-                                & CERT_TRUST_IS_SELF_SIGNED)
-                        {
+                        if index != 0 && 0 != ((**element).TrustStatus.dwInfoStatus & CERT_TRUST_IS_SELF_SIGNED) {
                             break;
                         }
 
@@ -168,8 +156,11 @@ impl CertContext {
     #[cfg(feature = "time")]
     pub fn timestamp(&self) -> Result<Option<time::UtcDateTime>> {
         use std::time::Duration;
-        use windows_sys::Win32::Foundation::{CRYPT_E_NOT_FOUND, FILETIME, GetLastError};
-        use windows_sys::core::HRESULT;
+
+        use windows_sys::{
+            Win32::Foundation::{CRYPT_E_NOT_FOUND, FILETIME, GetLastError},
+            core::HRESULT,
+        };
 
         // Duration between Windows epoch (1601-01-01) and Unix epoch (1970-01-01)
         const WINDOWS_TO_UNIX_EPOCH: Duration = Duration::from_secs(11_644_473_600);

@@ -11,10 +11,9 @@ use rustls::{
     crypto::{Credentials, Identity, SelectedCredential},
     server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
 };
-use rustls_cng::store::Pkcs12Flags;
 use rustls_cng::{
     signer::CngSigningKey,
-    store::{CertStore, CertStoreType},
+    store::{CertStore, CertStoreType, Pkcs12Flags},
 };
 
 const PORT: u16 = 8000;
@@ -28,22 +27,12 @@ struct AppParams {
         long = "ca-cert",
         help = "CA cert name to verify the peer certificate"
     )]
-    ca_cert: String,
+    ca_cert: Option<String>,
 
-    #[clap(
-        action,
-        short = 'k',
-        long = "keystore",
-        help = "Use external PFX keystore"
-    )]
+    #[clap(action, short = 'k', long = "keystore", help = "Use external PFX keystore")]
     keystore: Option<PathBuf>,
 
-    #[clap(
-        action,
-        short = 'p',
-        long = "password",
-        help = "Keystore password or card pin"
-    )]
+    #[clap(action, short = 'p', long = "password", help = "Keystore password or card pin")]
     password: Option<String>,
 }
 
@@ -90,7 +79,7 @@ impl ServerCredentialResolver for ServerCertResolver {
     }
 }
 
-fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow::Result<()> {
+fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
     println!("Accepted incoming connection from {}", stream.peer_addr()?);
     let mut connection = ServerConnection::new(config)?;
     let mut tls_stream = Stream::new(&mut connection, &mut stream);
@@ -101,10 +90,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
     }
 
     println!("Protocol version: {:?}", tls_stream.conn.protocol_version());
-    println!(
-        "Cipher suite: {:?}",
-        tls_stream.conn.negotiated_cipher_suite()
-    );
+    println!("Cipher suite: {:?}", tls_stream.conn.negotiated_cipher_suite());
     println!("SNI host name: {:?}", tls_stream.conn.server_name());
     println!("Peer identity: {:?}", tls_stream.conn.peer_identity());
 
@@ -118,7 +104,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> anyhow
     Ok(())
 }
 
-fn accept(server: TcpListener, config: Arc<ServerConfig>) -> anyhow::Result<()> {
+fn accept(server: TcpListener, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
     for stream in server.incoming().flatten() {
         let config = config.clone();
         std::thread::spawn(|| {
@@ -128,7 +114,7 @@ fn accept(server: TcpListener, config: Arc<ServerConfig>) -> anyhow::Result<()> 
     Ok(())
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let params: AppParams = AppParams::parse();
 
     let store = if let Some(ref keystore) = params.keystore {
@@ -142,15 +128,17 @@ fn main() -> anyhow::Result<()> {
         CertStore::open(CertStoreType::CurrentUser, "my")?
     };
 
-    let ca_cert_context = store.find_by_subject_str(&params.ca_cert)?;
-    let ca_cert = ca_cert_context.first().unwrap();
-
     let mut root_store = RootCertStore::empty();
-    root_store.add(ca_cert.as_der().into())?;
+    root_store.add_parsable_certificates(rustls_native_certs::load_native_certs().certs);
 
-    let verifier =
-        WebPkiClientVerifier::builder(Arc::new(root_store), &rustls_aws_lc_rs::DEFAULT_PROVIDER)
-            .build()?;
+    if let Some(ca_cert) = params.ca_cert {
+        let ca_cert_context = store.find_by_subject_str(&ca_cert)?;
+        let ca_cert = ca_cert_context.first().unwrap();
+
+        root_store.add(ca_cert.as_der().into())?;
+    }
+
+    let verifier = WebPkiClientVerifier::builder(Arc::new(root_store), &rustls_aws_lc_rs::DEFAULT_PROVIDER).build()?;
 
     let server_config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
         .with_client_cert_verifier(Arc::new(verifier))

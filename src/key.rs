@@ -143,8 +143,7 @@ impl NCryptKey {
 
     /// Return algorithm group of the key
     pub fn algorithm_group(&self) -> Result<AlgorithmGroup> {
-        self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)?
-            .parse()
+        self.get_string_property(NCRYPT_ALGORITHM_GROUP_PROPERTY)?.parse()
     }
 
     /// Return algorithm name of the key

@@ -14,25 +14,24 @@ publish = false
 [package.metadata.docs.rs]
 default-target = "x86_64-pc-windows-msvc"
 no-default-features = true
+features = ["time"]
 
 [dependencies]
 rustls = { git = "https://github.com/rustls/rustls.git", default-features = false, features = ["std"] }
-rustls-aws-lc-rs = { git = "https://github.com/rustls/rustls.git", optional = true }
 rustls-pki-types = "1"
-time = { version = "0.3.43", default-features = false, optional = true }
+time = { version = "0.3", default-features = false, optional = true }
 bitflags = "2"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
-anyhow = "1"
 clap = { version = "4", features = ["derive"] }
-rustls-pki-types = "1"
+rustls-aws-lc-rs = { git = "https://github.com/rustls/rustls.git" }
+rustls-native-certs = "0.8"
 
 [features]
-default = ["log", "aws-lc-rs"]
-aws-lc-rs = ["rustls-aws-lc-rs"]
-fips = ["rustls/fips"]
-log = ["rustls/log"]
+default = ["rustls-log"]
 time = ["dep:time"]
-brotli = ["rustls/brotli"]
-zlib = ["rustls/zlib"]
+rustls-fips = ["rustls/fips"]
+rustls-log = ["rustls/log"]
+rustls-brotli = ["rustls/brotli"]
+rustls-zlib = ["rustls/zlib"]

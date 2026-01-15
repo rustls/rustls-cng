@@ -7,4 +7,6 @@ pub mod key;
 pub mod signer;
 pub mod store;
 
+pub use rustls;
+
 pub type Result<T> = std::result::Result<T, error::CngError>;
