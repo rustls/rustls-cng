@@ -8,7 +8,7 @@ use std::{
 use clap::Parser;
 use rustls::{
     RootCertStore, ServerConfig, ServerConnection, Stream,
-    crypto::{Credentials, Identity, SelectedCredential, aws_lc_rs},
+    crypto::{Credentials, Identity, SelectedCredential},
     server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
 };
 use rustls_cng::store::Pkcs12Flags;
@@ -149,10 +149,10 @@ fn main() -> anyhow::Result<()> {
     root_store.add(ca_cert.as_der().into())?;
 
     let verifier =
-        WebPkiClientVerifier::builder(Arc::new(root_store), &aws_lc_rs::DEFAULT_PROVIDER)
+        WebPkiClientVerifier::builder(Arc::new(root_store), &rustls_aws_lc_rs::DEFAULT_PROVIDER)
             .build()?;
 
-    let server_config = ServerConfig::builder(Arc::new(aws_lc_rs::DEFAULT_PROVIDER))
+    let server_config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
         .with_client_cert_verifier(Arc::new(verifier))
         .with_server_credential_resolver(Arc::new(ServerCertResolver {
             store,

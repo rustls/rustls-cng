@@ -10,7 +10,7 @@ use clap::Parser;
 use rustls::{
     ClientConfig, ClientConnection, RootCertStore, Stream,
     client::{ClientCredentialResolver, CredentialRequest},
-    crypto::{Credentials, Identity, SelectedCredential, aws_lc_rs},
+    crypto::{Credentials, Identity, SelectedCredential},
     enums::CertificateType,
 };
 use rustls_pki_types::{CertificateDer, ServerName};
@@ -126,7 +126,7 @@ fn main() -> anyhow::Result<()> {
     let mut root_store = RootCertStore::empty();
     root_store.add(ca_cert.as_der().into())?;
 
-    let client_config = ClientConfig::builder(Arc::new(aws_lc_rs::DEFAULT_PROVIDER))
+    let client_config = ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
         .with_root_certificates(root_store)
         .with_client_credential_resolver(Arc::new(ClientCertResolver {
             store,

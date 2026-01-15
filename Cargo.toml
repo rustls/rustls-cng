@@ -17,6 +17,7 @@ no-default-features = true
 
 [dependencies]
 rustls = { git = "https://github.com/rustls/rustls.git", default-features = false, features = ["std"] }
+rustls-aws-lc-rs = { git = "https://github.com/rustls/rustls.git", optional = true }
 rustls-pki-types = "1"
 time = { version = "0.3.43", default-features = false, optional = true }
 bitflags = "2"
@@ -29,7 +30,7 @@ rustls-pki-types = "1"
 
 [features]
 default = ["log", "aws-lc-rs"]
-aws-lc-rs = ["rustls/aws-lc-rs"]
+aws-lc-rs = ["rustls-aws-lc-rs"]
 fips = ["rustls/fips"]
 log = ["rustls/log"]
 time = ["dep:time"]
