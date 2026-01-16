@@ -5,8 +5,8 @@ use std::sync::Arc;
 use rustls::{
     crypto::{SignatureScheme, Signer, SigningKey},
     error::{Error, OtherError},
+    pki_types::SubjectPublicKeyInfoDer,
 };
-use rustls_pki_types::SubjectPublicKeyInfoDer;
 use windows_sys::Win32::Security::Cryptography::{
     BCRYPT_SHA256_ALG_HANDLE, BCRYPT_SHA384_ALG_HANDLE, BCRYPT_SHA512_ALG_HANDLE, BCryptHash,
 };

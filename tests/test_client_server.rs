@@ -16,12 +16,12 @@ mod client {
         client::{ClientCredentialResolver, CredentialRequest},
         crypto::{Credentials, Identity, SelectedCredential},
         enums::CertificateType,
+        pki_types::CertificateDer,
     };
     use rustls_cng::{
         signer::CngSigningKey,
         store::{CertStore, Pkcs12Flags},
     };
-    use rustls_pki_types::CertificateDer;
 
     #[derive(Debug)]
     pub struct ClientCertResolver(CertStore, String);

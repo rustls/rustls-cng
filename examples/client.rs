@@ -12,12 +12,12 @@ use rustls::{
     client::{ClientCredentialResolver, CredentialRequest},
     crypto::{Credentials, Identity, SelectedCredential},
     enums::CertificateType,
+    pki_types::{CertificateDer, ServerName},
 };
 use rustls_cng::{
     signer::CngSigningKey,
     store::{CertStore, CertStoreType, Pkcs12Flags},
 };
-use rustls_pki_types::{CertificateDer, ServerName};
 
 const PORT: u16 = 8000;
 

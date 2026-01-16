@@ -331,7 +331,6 @@ dependencies = [
  "rustls",
  "rustls-aws-lc-rs",
  "rustls-native-certs",
- "rustls-pki-types",
  "time",
  "windows-sys 0.61.2",
 ]
