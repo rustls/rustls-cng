@@ -277,7 +277,7 @@ mod tests {
     #[test]
     fn test_p1363_to_der_long() {
         let r = (1..128).collect::<Vec<u8>>();
-        let s = (1..128).rev().collect::<Vec<u8>>();
+        let s = (128..254).chain([0]).rev().collect::<Vec<u8>>();
 
         let p1363 = r.clone().into_iter().chain(s.clone()).collect::<Vec<u8>>();
         let der = super::p1363_to_der(&p1363).unwrap();
