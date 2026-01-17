@@ -14,7 +14,7 @@ use windows_sys::Win32::Security::Cryptography::{
 use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
 
 // Convert IEEE-P1363 signature format to DER encoding.
-// Some modifications are taken from https://github.com/tofay/rustls-cng-crypto/blob/main/src/signer/ec.rs
+// The maximum signature size we support is 132 bytes of the NIST P-521 curve.
 fn p1363_to_der(data: &[u8]) -> Vec<u8> {
     const SEQUENCE_TAG: u8 = 0x30;
     const INTEGER_TAG: u8 = 0x02;
@@ -34,24 +34,14 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
 
     let v_length = 4 + r_sign.len() + s_sign.len() + r.len() + s.len();
 
-    let (short_form, length_len) = if v_length <= 0x80 {
-        (true, 1)
-    } else {
-        let mut v_length = v_length;
-        let mut length_len = 0;
-        while v_length > 0 {
-            v_length >>= 8;
-            length_len += 1;
-        }
-        (false, length_len)
-    };
+    let length_len = (usize::BITS - v_length.leading_zeros()).div_ceil(8) as usize;
 
-    let length = length_len + v_length + 1;
-    let mut der = Vec::with_capacity(length);
+    let mut der = Vec::with_capacity(1 + length_len + v_length);
 
     der.push(SEQUENCE_TAG);
-    if short_form {
-        der.push(v_length as u8); // LENGTH - short form
+
+    if v_length < 128 {
+        der.push(v_length as u8);
     } else {
         der.push(0x80 | length_len as u8);
         for i in (0..length_len).rev() {
@@ -219,20 +209,69 @@ impl SigningKey for CngSigningKey {
 
 #[cfg(test)]
 mod tests {
+    use der::{Decode, Reader, asn1::Int};
+
+    fn validate_der(data: &[u8], r: &Int, s: &Int) {
+        let (decoded_r, decoded_s) = der::SliceReader::new(&data)
+            .unwrap()
+            .sequence(|reader| Ok((Int::decode(reader)?, Int::decode(reader)?)))
+            .unwrap();
+
+        assert_eq!(decoded_r, *r);
+        assert_eq!(decoded_s, *s);
+    }
+
     #[test]
     fn test_p1363_to_der() {
         let p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
         let der = super::p1363_to_der(&p1363);
-        assert_eq!(der, [0x30, 0x0c, 0x02, 0x04, 1, 2, 3, 4, 0x02, 0x04, 5, 6, 7, 8])
+        validate_der(
+            &der,
+            &Int::new(&[1, 2, 3, 4]).unwrap(),
+            &Int::new(&[5, 6, 7, 8]).unwrap(),
+        );
     }
 
     #[test]
     fn test_p1363_to_der_signed() {
         let p1363 = [0x81, 2, 3, 4, 0x85, 6, 7, 8];
         let der = super::p1363_to_der(&p1363);
-        assert_eq!(
-            der,
-            [0x30, 0x0e, 0x02, 0x05, 0, 0x81, 2, 3, 4, 0x02, 0x05, 0, 0x85, 6, 7, 8]
-        )
+        validate_der(
+            &der,
+            &Int::new(&[0, 0x81, 2, 3, 4]).unwrap(),
+            &Int::new(&[0, 0x85, 6, 7, 8]).unwrap(),
+        );
+    }
+
+    #[test]
+    fn test_p1363_to_der_zeroes_stripped() {
+        let p1363 = [0, 1, 2, 3, 4, 0, 5, 6, 7, 8];
+        let der = super::p1363_to_der(&p1363);
+        validate_der(
+            &der,
+            &Int::new(&[1, 2, 3, 4]).unwrap(),
+            &Int::new(&[5, 6, 7, 8]).unwrap(),
+        );
+    }
+
+    #[test]
+    fn test_p1363_to_der_signed_zeroes_stripped() {
+        let p1363 = [0, 0x81, 2, 3, 4, 0, 0x85, 6, 7, 8];
+        let der = super::p1363_to_der(&p1363);
+        validate_der(
+            &der,
+            &Int::new(&[0, 0x81, 2, 3, 4]).unwrap(),
+            &Int::new(&[0, 0x85, 6, 7, 8]).unwrap(),
+        );
+    }
+
+    #[test]
+    fn test_p1363_to_der_long() {
+        let r = (1..128).collect::<Vec<u8>>();
+        let s = (1..128).rev().collect::<Vec<u8>>();
+
+        let p1363 = r.clone().into_iter().chain(s.clone()).collect::<Vec<u8>>();
+        let der = super::p1363_to_der(&p1363);
+        validate_der(&der, &Int::new(&r).unwrap(), &Int::new(&s).unwrap());
     }
 }
