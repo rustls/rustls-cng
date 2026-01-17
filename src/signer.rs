@@ -15,18 +15,26 @@ use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
 
 // Convert IEEE-P1363 signature format to DER encoding.
 // The maximum signature size we support is 132 bytes of the NIST P-521 curve.
-fn p1363_to_der(data: &[u8]) -> Vec<u8> {
+fn p1363_to_der(data: &[u8]) -> Result<Vec<u8>, Error> {
     const SEQUENCE_TAG: u8 = 0x30;
     const INTEGER_TAG: u8 = 0x02;
 
+    if data.len() > 254 {
+        return Err(Error::General("Signature too long".to_owned()));
+    }
+
     let (mut r, mut s) = data.split_at(data.len() / 2);
 
-    while r[0] == 0x0 {
+    while r[0] == 0x0 && !r.is_empty() {
         r = &r[1..];
     }
 
-    while s[0] == 0x0 {
+    while s[0] == 0x0 && !s.is_empty() {
         s = &s[1..];
+    }
+
+    if r.is_empty() || s.is_empty() {
+        return Err(Error::General("Invalid signature".to_owned()));
     }
 
     let r_sign: &[u8] = if r[0] >= 0x80 { &[0] } else { &[] };
@@ -34,7 +42,7 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
 
     let v_length = 4 + r_sign.len() + s_sign.len() + r.len() + s.len();
 
-    let length_len = (usize::BITS - v_length.leading_zeros()).div_ceil(8) as usize;
+    let length_len = if v_length < 128 { 1 } else { 3 };
 
     let mut der = Vec::with_capacity(1 + length_len + v_length);
 
@@ -43,10 +51,8 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
     if v_length < 128 {
         der.push(v_length as u8);
     } else {
-        der.push(0x80 | length_len as u8);
-        for i in (0..length_len).rev() {
-            der.push((v_length >> (i * 8)) as u8);
-        }
+        der.push(0x82);
+        der.extend((v_length as u16).to_be_bytes());
     }
 
     der.push(INTEGER_TAG);
@@ -58,7 +64,8 @@ fn p1363_to_der(data: &[u8]) -> Vec<u8> {
     der.push((s.len() + s_sign.len()) as u8);
     der.extend(s_sign);
     der.extend(s);
-    der
+
+    Ok(der)
 }
 
 /// Custom implementation of `rustls` SigningKey trait
@@ -177,7 +184,7 @@ impl Signer for CngSigner {
 
         if padding == SignaturePadding::None {
             // For ECDSA keys Windows produces IEEE-P1363 signatures which must be converted to DER format
-            Ok(p1363_to_der(&signature))
+            p1363_to_der(&signature)
         } else {
             Ok(signature)
         }
@@ -224,7 +231,7 @@ mod tests {
     #[test]
     fn test_p1363_to_der() {
         let p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363);
+        let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
             &Int::new(&[1, 2, 3, 4]).unwrap(),
@@ -235,7 +242,7 @@ mod tests {
     #[test]
     fn test_p1363_to_der_signed() {
         let p1363 = [0x81, 2, 3, 4, 0x85, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363);
+        let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
             &Int::new(&[0, 0x81, 2, 3, 4]).unwrap(),
@@ -246,7 +253,7 @@ mod tests {
     #[test]
     fn test_p1363_to_der_zeroes_stripped() {
         let p1363 = [0, 1, 2, 3, 4, 0, 5, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363);
+        let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
             &Int::new(&[1, 2, 3, 4]).unwrap(),
@@ -257,7 +264,7 @@ mod tests {
     #[test]
     fn test_p1363_to_der_signed_zeroes_stripped() {
         let p1363 = [0, 0x81, 2, 3, 4, 0, 0x85, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363);
+        let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
             &Int::new(&[0, 0x81, 2, 3, 4]).unwrap(),
@@ -271,7 +278,7 @@ mod tests {
         let s = (1..128).rev().collect::<Vec<u8>>();
 
         let p1363 = r.clone().into_iter().chain(s.clone()).collect::<Vec<u8>>();
-        let der = super::p1363_to_der(&p1363);
+        let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(&der, &Int::new(&r).unwrap(), &Int::new(&s).unwrap());
     }
 }
