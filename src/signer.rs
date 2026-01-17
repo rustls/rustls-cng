@@ -216,16 +216,18 @@ impl SigningKey for CngSigningKey {
 
 #[cfg(test)]
 mod tests {
-    use der::{Decode, Reader, asn1::Int};
+    use asn1::{BigUint, Sequence};
 
-    fn validate_der(data: &[u8], r: &Int, s: &Int) {
-        let (decoded_r, decoded_s) = der::SliceReader::new(&data)
-            .unwrap()
-            .sequence(|reader| Ok((Int::decode(reader)?, Int::decode(reader)?)))
-            .unwrap();
+    fn validate_der(data: &[u8], r: &BigUint, s: &BigUint) {
+        let (parsed_r, parsed_s) = asn1::parse(data, |parser| {
+            parser.read_element::<Sequence>()?.parse(|parser| {
+                Ok::<_, asn1::ParseError>((parser.read_element::<BigUint>()?, parser.read_element::<BigUint>()?))
+            })
+        })
+        .unwrap();
 
-        assert_eq!(decoded_r, *r);
-        assert_eq!(decoded_s, *s);
+        assert_eq!(parsed_r, *r);
+        assert_eq!(parsed_s, *s);
     }
 
     #[test]
@@ -234,8 +236,8 @@ mod tests {
         let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
-            &Int::new(&[1, 2, 3, 4]).unwrap(),
-            &Int::new(&[5, 6, 7, 8]).unwrap(),
+            &BigUint::new(&[1, 2, 3, 4]).unwrap(),
+            &BigUint::new(&[5, 6, 7, 8]).unwrap(),
         );
     }
 
@@ -245,8 +247,8 @@ mod tests {
         let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
-            &Int::new(&[0, 0x81, 2, 3, 4]).unwrap(),
-            &Int::new(&[0, 0x85, 6, 7, 8]).unwrap(),
+            &BigUint::new(&[0, 0x81, 2, 3, 4]).unwrap(),
+            &BigUint::new(&[0, 0x85, 6, 7, 8]).unwrap(),
         );
     }
 
@@ -256,8 +258,8 @@ mod tests {
         let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
-            &Int::new(&[1, 2, 3, 4]).unwrap(),
-            &Int::new(&[5, 6, 7, 8]).unwrap(),
+            &BigUint::new(&[1, 2, 3, 4]).unwrap(),
+            &BigUint::new(&[5, 6, 7, 8]).unwrap(),
         );
     }
 
@@ -267,8 +269,8 @@ mod tests {
         let der = super::p1363_to_der(&p1363).unwrap();
         validate_der(
             &der,
-            &Int::new(&[0, 0x81, 2, 3, 4]).unwrap(),
-            &Int::new(&[0, 0x85, 6, 7, 8]).unwrap(),
+            &BigUint::new(&[0, 0x81, 2, 3, 4]).unwrap(),
+            &BigUint::new(&[0, 0x85, 6, 7, 8]).unwrap(),
         );
     }
 
@@ -279,6 +281,6 @@ mod tests {
 
         let p1363 = r.clone().into_iter().chain(s.clone()).collect::<Vec<u8>>();
         let der = super::p1363_to_der(&p1363).unwrap();
-        validate_der(&der, &Int::new(&r).unwrap(), &Int::new(&s).unwrap());
+        validate_der(&der, &BigUint::new(&r).unwrap(), &BigUint::new(&s).unwrap());
     }
 }

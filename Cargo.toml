@@ -26,7 +26,7 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Securit
 clap = { version = "4", default-features = false, features = ["std", "derive", "help"] }
 rustls-aws-lc-rs = { git = "https://github.com/rustls/rustls.git" }
 rustls-native-certs = "0.8"
-der = { version = "0.7", features = ["alloc"] }
+asn1 = "0.23"
 
 [features]
 default = ["rustls-log", "rustls-std"]
