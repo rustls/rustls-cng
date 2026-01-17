@@ -142,7 +142,7 @@ impl CertStore {
             cbData: hash.as_ref().len() as u32,
             pbData: hash.as_ref().as_ptr() as _,
         };
-        unsafe { self.do_find(CERT_FIND_HASH, &hash_blob as *const _ as _) }
+        self.do_find(CERT_FIND_HASH, &hash_blob as *const _ as _)
     }
 
     // On later OS releases, we added CERT_FIND_SHA256_HASH.
@@ -161,7 +161,7 @@ impl CertStore {
             cbData: hash.as_ref().len() as u32,
             pbData: hash.as_ref().as_ptr() as _,
         };
-        unsafe { self.do_find_by_sha256_property(&hash_blob as *const _ as _) }
+        self.do_find_by_sha256_property(&hash_blob as *const _ as _)
     }
 
     /// Find a list of certificates matching the key identifier
@@ -178,15 +178,15 @@ impl CertStore {
                 },
             },
         };
-        unsafe { self.do_find(CERT_FIND_CERT_ID, &cert_id as *const _ as _) }
+        self.do_find(CERT_FIND_CERT_ID, &cert_id as *const _ as _)
     }
 
     /// Get all certificates
     pub fn find_all(&self) -> Result<Vec<CertContext>> {
-        unsafe { self.do_find(CERT_FIND_ANY, ptr::null()) }
+        self.do_find(CERT_FIND_ANY, ptr::null())
     }
 
-    unsafe fn do_find(&self, flags: CERT_FIND_FLAGS, find_param: *const c_void) -> Result<Vec<CertContext>> {
+    fn do_find(&self, flags: CERT_FIND_FLAGS, find_param: *const c_void) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
         unsafe {
@@ -206,7 +206,7 @@ impl CertStore {
         Ok(certs)
     }
 
-    unsafe fn do_find_by_sha256_property(&self, find_param: *const c_void) -> Result<Vec<CertContext>> {
+    fn do_find_by_sha256_property(&self, find_param: *const c_void) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
         unsafe {
@@ -240,7 +240,7 @@ impl CertStore {
 
     fn find_by_str(&self, pattern: &str, flags: CERT_FIND_FLAGS) -> Result<Vec<CertContext>> {
         let u16pattern = utf16z!(pattern);
-        unsafe { self.do_find(flags, u16pattern.as_ptr() as _) }
+        self.do_find(flags, u16pattern.as_ptr() as _)
     }
 
     fn find_by_name(&self, field: &str, flags: CERT_FIND_FLAGS) -> Result<Vec<CertContext>> {
