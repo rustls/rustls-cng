@@ -14,22 +14,22 @@ use windows_sys::Win32::Security::Cryptography::{
 use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
 
 // Convert IEEE-P1363 signature format to DER encoding.
-// The maximum signature size we support is 132 bytes of the NIST P-521 curve.
+// The maximum signature size we support is 254 bytes.
 fn p1363_to_der(data: &[u8]) -> Result<Vec<u8>, Error> {
     const SEQUENCE_TAG: u8 = 0x30;
     const INTEGER_TAG: u8 = 0x02;
 
-    if data.len() > 254 {
-        return Err(Error::General("Signature too long".to_owned()));
+    if data.is_empty() || data.len() > 254 || !data.len().is_multiple_of(2) {
+        return Err(Error::General("Invalid signature size".to_owned()));
     }
 
     let (mut r, mut s) = data.split_at(data.len() / 2);
 
-    while r[0] == 0x0 && !r.is_empty() {
+    while !r.is_empty() && r[0] == 0x0 {
         r = &r[1..];
     }
 
-    while s[0] == 0x0 && !s.is_empty() {
+    while !s.is_empty() && s[0] == 0x0 {
         s = &s[1..];
     }
 
@@ -42,13 +42,22 @@ fn p1363_to_der(data: &[u8]) -> Result<Vec<u8>, Error> {
 
     let v_length = 4 + r_sign.len() + s_sign.len() + r.len() + s.len();
 
-    let length_len = if v_length < 128 { 1 } else { 3 };
+    let length_len = if v_length < 128 {
+        1
+    } else if v_length < 256 {
+        2
+    } else {
+        3
+    };
 
     let mut der = Vec::with_capacity(1 + length_len + v_length);
 
     der.push(SEQUENCE_TAG);
 
     if v_length < 128 {
+        der.push(v_length as u8);
+    } else if v_length < 256 {
+        der.push(0x81);
         der.push(v_length as u8);
     } else {
         der.push(0x82);
