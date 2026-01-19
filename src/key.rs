@@ -2,10 +2,7 @@
 
 use std::{os::raw::c_void, ptr, str::FromStr, sync::Arc};
 
-use windows_sys::{
-    Win32::Security::{Cryptography::*, OBJECT_SECURITY_INFORMATION},
-    core::PCWSTR,
-};
+use windows_sys::{Win32::Security::Cryptography::*, core::PCWSTR};
 
 use crate::{Result, error::CngError};
 
@@ -102,7 +99,7 @@ impl NCryptKey {
                 ptr::null_mut(),
                 0,
                 &mut result,
-                OBJECT_SECURITY_INFORMATION::default(),
+                NCRYPT_FLAGS::default(),
             ))?;
 
             let mut prop_value = vec![0u8; result as usize];
@@ -113,7 +110,7 @@ impl NCryptKey {
                 prop_value.as_mut_ptr(),
                 prop_value.len() as u32,
                 &mut result,
-                OBJECT_SECURITY_INFORMATION::default(),
+                NCRYPT_FLAGS::default(),
             ))?;
 
             Ok(String::from_utf16_lossy(std::slice::from_raw_parts(
@@ -134,7 +131,7 @@ impl NCryptKey {
                 bits.as_mut_ptr(),
                 4,
                 &mut result,
-                OBJECT_SECURITY_INFORMATION::default(),
+                NCRYPT_FLAGS::default(),
             ))?;
 
             Ok(u32::from_ne_bytes(bits))
