@@ -8,12 +8,11 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    ClientConfig, ClientConnection, Stream,
+    ClientConfig, ClientConnection, RootCertStore, Stream,
     client::{ClientCredentialResolver, CredentialRequest},
     crypto::{Credentials, Identity, SelectedCredential},
     enums::CertificateType,
     pki_types::{CertificateDer, ServerName},
-    RootCertStore,
 };
 use rustls_cng::{
     signer::CngSigningKey,
