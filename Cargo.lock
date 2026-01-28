@@ -323,7 +323,7 @@ dependencies = [
 [[package]]
 name = "rustls"
 version = "0.24.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#0230a5e74006bc54ebad4d571638b2b6948f970a"
+source = "git+https://github.com/rustls/rustls.git#4ecf74863873c88f3ce87cb268dd5c0c88be4b29"
 dependencies = [
  "brotli",
  "brotli-decompressor",
@@ -339,7 +339,7 @@ dependencies = [
 [[package]]
 name = "rustls-aws-lc-rs"
 version = "0.1.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#0230a5e74006bc54ebad4d571638b2b6948f970a"
+source = "git+https://github.com/rustls/rustls.git#4ecf74863873c88f3ce87cb268dd5c0c88be4b29"
 dependencies = [
  "aws-lc-rs",
  "rustls",
