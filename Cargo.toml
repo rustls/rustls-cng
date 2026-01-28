@@ -23,6 +23,7 @@ bitflags = "2"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
+rustls = { git = "https://github.com/rustls/rustls.git", default-features = false, features = ["webpki"] }
 clap = { version = "4", default-features = false, features = ["std", "derive", "help"] }
 rustls-aws-lc-rs = { git = "https://github.com/rustls/rustls.git" }
 rustls-native-certs = "0.8"
