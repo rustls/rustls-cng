@@ -7,7 +7,7 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    RootCertStore, ServerConfig, ServerConnection, Stream,
+    RootCertStore, ServerConfig, ServerConnection,
     crypto::{Credentials, Identity, SelectedCredential},
     server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
 };
@@ -15,6 +15,7 @@ use rustls_cng::{
     signer::CngSigningKey,
     store::{CertStore, CertStoreType, Pkcs12Flags},
 };
+use rustls_util::Stream;
 
 const PORT: u16 = 8000;
 

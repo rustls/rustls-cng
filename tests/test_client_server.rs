@@ -12,7 +12,7 @@ mod client {
     };
 
     use rustls::{
-        ClientConfig, ClientConnection, RootCertStore, Stream,
+        ClientConfig, ClientConnection, RootCertStore,
         client::{ClientCredentialResolver, CredentialRequest},
         crypto::{Credentials, Identity, SelectedCredential},
         enums::CertificateType,
@@ -22,6 +22,7 @@ mod client {
         signer::CngSigningKey,
         store::{CertStore, Pkcs12Flags},
     };
+    use rustls_util::Stream;
 
     #[derive(Debug)]
     pub struct ClientCertResolver(CertStore, String);
@@ -93,7 +94,7 @@ mod server {
     };
 
     use rustls::{
-        RootCertStore, ServerConfig, ServerConnection, Stream,
+        RootCertStore, ServerConfig, ServerConnection,
         crypto::{Credentials, Identity, SelectedCredential},
         server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
     };
@@ -101,6 +102,7 @@ mod server {
         signer::CngSigningKey,
         store::{CertStore, Pkcs12Flags},
     };
+    use rustls_util::Stream;
 
     #[derive(Debug)]
     pub struct ServerCertResolver(CertStore);

@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    ClientConfig, ClientConnection, RootCertStore, Stream,
+    ClientConfig, ClientConnection, RootCertStore,
     client::{ClientCredentialResolver, CredentialRequest},
     crypto::{Credentials, Identity, SelectedCredential},
     enums::CertificateType,
@@ -18,6 +18,7 @@ use rustls_cng::{
     signer::CngSigningKey,
     store::{CertStore, CertStoreType, Pkcs12Flags},
 };
+use rustls_util::Stream;
 
 const PORT: u16 = 8000;
 
