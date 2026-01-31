@@ -12,7 +12,7 @@ mod client {
     };
 
     use rustls::{
-        ClientConfig, ClientConnection, RootCertStore,
+        ClientConfig, RootCertStore,
         client::{ClientCredentialResolver, CredentialRequest},
         crypto::{Credentials, Identity, SelectedCredential},
         enums::CertificateType,
@@ -64,12 +64,13 @@ mod client {
         let mut root_store = RootCertStore::empty();
         root_store.add(ca_cert.as_der().into())?;
 
-        let client_config = ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
-            .with_root_certificates(root_store)
-            .with_client_credential_resolver(Arc::new(ClientCertResolver(store, "rustls-client".to_string())))?;
+        let client_config = Arc::new(
+            ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
+                .with_root_certificates(root_store)
+                .with_client_credential_resolver(Arc::new(ClientCertResolver(store, "rustls-client".to_string())))?,
+        );
 
-        let mut connection = ClientConnection::new(Arc::new(client_config), "rustls-server".try_into()?)?;
-
+        let mut connection = client_config.connect("rustls-server".try_into()?).build()?;
         let mut client = TcpStream::connect(format!("localhost:{port}"))?;
 
         let mut tls_stream = Stream::new(&mut connection, &mut client);

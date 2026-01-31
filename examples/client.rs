@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use rustls::{
-    ClientConfig, ClientConnection, RootCertStore,
+    ClientConfig, RootCertStore,
     client::{ClientCredentialResolver, CredentialRequest},
     crypto::{Credentials, Identity, SelectedCredential},
     enums::CertificateType,
@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let builder =
         ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER)).with_root_certificates(root_store);
 
-    let client_config = if let Some(client_cert) = params.client_cert {
+    let client_config = Arc::new(if let Some(client_cert) = params.client_cert {
         builder.with_client_credential_resolver(Arc::new(ClientCertResolver {
             store,
             cert_name: client_cert.clone(),
@@ -118,11 +118,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }))?
     } else {
         builder.with_no_client_auth()?
-    };
+    });
 
     let server_name = ServerName::try_from(params.server_name.as_deref().unwrap_or(&params.server_address))?.to_owned();
 
-    let mut connection = ClientConnection::new(Arc::new(client_config), server_name)?;
+    let mut connection = client_config.connect(server_name).build()?;
     let mut client = TcpStream::connect(format!("{}:{}", params.server_address, PORT))?;
 
     let mut tls_stream = Stream::new(&mut connection, &mut client);
