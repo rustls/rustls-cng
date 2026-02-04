@@ -85,10 +85,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result
     let mut connection = ServerConnection::new(config)?;
     let mut tls_stream = Stream::new(&mut connection, &mut stream);
 
-    // perform handshake early to get and dump some protocol information
-    if tls_stream.conn.is_handshaking() {
-        tls_stream.conn.complete_io(tls_stream.sock)?;
-    }
+    rustls_util::complete_io(tls_stream.sock, tls_stream.conn)?;
 
     println!("Protocol version: {:?}", tls_stream.conn.protocol_version());
     println!("Cipher suite: {:?}", tls_stream.conn.negotiated_cipher_suite());
