@@ -323,7 +323,7 @@ dependencies = [
 [[package]]
 name = "rustls"
 version = "0.24.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#7799ff962932ae267c0acc6eaea5b05b7979c953"
+source = "git+https://github.com/rustls/rustls.git#f91b893578bc284c45e3c1d0f9d9556725a3af7e"
 dependencies = [
  "brotli",
  "brotli-decompressor",
@@ -339,7 +339,7 @@ dependencies = [
 [[package]]
 name = "rustls-aws-lc-rs"
 version = "0.1.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#7799ff962932ae267c0acc6eaea5b05b7979c953"
+source = "git+https://github.com/rustls/rustls.git#f91b893578bc284c45e3c1d0f9d9556725a3af7e"
 dependencies = [
  "aws-lc-rs",
  "rustls",
@@ -387,7 +387,7 @@ dependencies = [
 [[package]]
 name = "rustls-util"
 version = "0.1.0"
-source = "git+https://github.com/rustls/rustls.git#7799ff962932ae267c0acc6eaea5b05b7979c953"
+source = "git+https://github.com/rustls/rustls.git#f91b893578bc284c45e3c1d0f9d9556725a3af7e"
 dependencies = [
  "log",
  "rustls",
@@ -461,9 +461,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.46"
+version = "0.3.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9da98b7d9b7dad93488a84b8248efc35352b0b2657397d4167e7ad67e5d535e5"
+checksum = "743bd48c283afc0388f9b8827b976905fb217ad9e647fae3a379a9283c4def2c"
 dependencies = [
  "deranged",
  "num-conv",
