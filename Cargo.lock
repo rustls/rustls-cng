@@ -18,12 +18,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anstyle"
-version = "1.0.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5192cca8006f1fd4f7237516f40fa183bb07f8fbdfedaa0036de5ea9b0b45e78"
-
-[[package]]
 name = "asn1"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -112,44 +106,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
-name = "clap"
-version = "4.5.57"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6899ea499e3fb9305a65d5ebf6e3d2248c5fab291f300ad0a704fbe142eae31a"
-dependencies = [
- "clap_builder",
- "clap_derive",
-]
-
-[[package]]
-name = "clap_builder"
-version = "4.5.57"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b12c8b680195a62a8364d16b8447b01b6c2c8f9aaf68bee653be34d4245e238"
-dependencies = [
- "anstyle",
- "clap_lex",
-]
-
-[[package]]
-name = "clap_derive"
-version = "4.5.55"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a92793da1a46a5f2a02a6f4c46c6496b28c43638adea8306fcb0caa1634f24e5"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "clap_lex"
-version = "0.7.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
-
-[[package]]
 name = "cmake"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -223,12 +179,6 @@ dependencies = [
  "r-efi",
  "wasip2",
 ]
-
-[[package]]
-name = "heck"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "itoa"
@@ -323,7 +273,7 @@ dependencies = [
 [[package]]
 name = "rustls"
 version = "0.24.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#f91b893578bc284c45e3c1d0f9d9556725a3af7e"
+source = "git+https://github.com/rustls/rustls.git#251acce7d8a8e3e25a409662086a3a9060c90a02"
 dependencies = [
  "brotli",
  "brotli-decompressor",
@@ -339,7 +289,7 @@ dependencies = [
 [[package]]
 name = "rustls-aws-lc-rs"
 version = "0.1.0-dev.0"
-source = "git+https://github.com/rustls/rustls.git#f91b893578bc284c45e3c1d0f9d9556725a3af7e"
+source = "git+https://github.com/rustls/rustls.git#251acce7d8a8e3e25a409662086a3a9060c90a02"
 dependencies = [
  "aws-lc-rs",
  "rustls",
@@ -354,7 +304,6 @@ version = "0.8.0-dev"
 dependencies = [
  "asn1",
  "bitflags",
- "clap",
  "rustls",
  "rustls-aws-lc-rs",
  "rustls-native-certs",
@@ -387,7 +336,7 @@ dependencies = [
 [[package]]
 name = "rustls-util"
 version = "0.1.0"
-source = "git+https://github.com/rustls/rustls.git#f91b893578bc284c45e3c1d0f9d9556725a3af7e"
+source = "git+https://github.com/rustls/rustls.git#251acce7d8a8e3e25a409662086a3a9060c90a02"
 dependencies = [
  "log",
  "rustls",
