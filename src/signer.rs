@@ -227,6 +227,7 @@ impl SigningKey for CngSigningKey {
 mod tests {
     use asn1::{BigUint, Sequence};
 
+    #[allow(clippy::result_large_err)]
     fn validate_der(data: &[u8], r: &BigUint, s: &BigUint) {
         let (parsed_r, parsed_s) = asn1::parse(data, |parser| {
             parser.read_element::<Sequence>()?.parse(|parser| {
