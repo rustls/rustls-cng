@@ -26,7 +26,7 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Securit
 rustls-aws-lc-rs = { git = "https://github.com/rustls/rustls.git" }
 rustls-util = { git = "https://github.com/rustls/rustls.git" }
 rustls-native-certs = "0.8"
-asn1 = "0.23"
+asn1 = "0.24"
 
 [features]
 default = ["rustls-log", "rustls-webpki"]
