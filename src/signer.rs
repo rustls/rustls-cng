@@ -8,73 +8,73 @@ use rustls::{
     pki_types::SubjectPublicKeyInfoDer,
 };
 use windows_sys::Win32::Security::Cryptography::{
-    BCRYPT_SHA256_ALG_HANDLE, BCRYPT_SHA384_ALG_HANDLE, BCRYPT_SHA512_ALG_HANDLE, BCryptHash,
+    BCRYPT_SHA256_ALG_HANDLE, BCRYPT_SHA384_ALG_HANDLE, BCRYPT_SHA512_ALG_HANDLE, BCryptHash, CERT_ECC_SIGNATURE,
+    CRYPT_INTEGER_BLOB, CryptEncodeObjectEx, X509_ASN_ENCODING, X509_ECC_SIGNATURE,
 };
 
 use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
 
-// Convert IEEE-P1363 signature format to DER encoding.
-// The maximum signature size we support is 254 bytes.
+// Convert an IEEE-P1363 (raw r || s) signature into DER encoding using the Win32 API.
+// CryptEncodeObjectEx with X509_ECC_SIGNATURE produces the DER `SEQUENCE { INTEGER r, INTEGER s }`,
+// taking care of minimal-length and sign-byte padding of the integers.
 fn p1363_to_der(data: &[u8]) -> Result<Vec<u8>, Error> {
-    const SEQUENCE_TAG: u8 = 0x30;
-    const INTEGER_TAG: u8 = 0x02;
-
-    if data.is_empty() || data.len() > 254 || !data.len().is_multiple_of(2) {
+    if data.is_empty() || !data.len().is_multiple_of(2) {
         return Err(Error::General("Invalid signature size".to_owned()));
     }
 
-    let (mut r, mut s) = data.split_at(data.len() / 2);
+    let (r, s) = data.split_at(data.len() / 2);
 
-    while !r.is_empty() && r[0] == 0x0 {
-        r = &r[1..];
-    }
+    // CNG integer blobs are little-endian, so reverse the big-endian halves.
+    let mut r_le = r.to_vec();
+    r_le.reverse();
+    let mut s_le = s.to_vec();
+    s_le.reverse();
 
-    while !s.is_empty() && s[0] == 0x0 {
-        s = &s[1..];
-    }
-
-    if r.is_empty() || s.is_empty() {
-        return Err(Error::General("Invalid signature".to_owned()));
-    }
-
-    let r_sign: &[u8] = if r[0] >= 0x80 { &[0] } else { &[] };
-    let s_sign: &[u8] = if s[0] >= 0x80 { &[0] } else { &[] };
-
-    let v_length = 4 + r_sign.len() + s_sign.len() + r.len() + s.len();
-
-    let length_len = if v_length < 128 {
-        1
-    } else if v_length < 256 {
-        2
-    } else {
-        3
+    let sig = CERT_ECC_SIGNATURE {
+        r: CRYPT_INTEGER_BLOB {
+            cbData: r_le.len() as u32,
+            pbData: r_le.as_mut_ptr(),
+        },
+        s: CRYPT_INTEGER_BLOB {
+            cbData: s_le.len() as u32,
+            pbData: s_le.as_mut_ptr(),
+        },
     };
+    let sig_ptr = std::ptr::from_ref(&sig).cast();
 
-    let mut der = Vec::with_capacity(1 + length_len + v_length);
+    unsafe {
+        // First call retrieves the required output buffer size.
+        let mut len = 0u32;
+        let status = CryptEncodeObjectEx(
+            X509_ASN_ENCODING,
+            X509_ECC_SIGNATURE,
+            sig_ptr,
+            0,
+            std::ptr::null(),
+            std::ptr::null_mut(),
+            &mut len,
+        );
+        if status == 0 {
+            return Err(Error::General("CryptEncodeObjectEx failed to size the signature".to_owned()));
+        }
 
-    der.push(SEQUENCE_TAG);
+        let mut der = vec![0u8; len as usize];
+        let status = CryptEncodeObjectEx(
+            X509_ASN_ENCODING,
+            X509_ECC_SIGNATURE,
+            sig_ptr,
+            0,
+            std::ptr::null(),
+            der.as_mut_ptr().cast(),
+            &mut len,
+        );
+        if status == 0 {
+            return Err(Error::General("CryptEncodeObjectEx failed to encode the signature".to_owned()));
+        }
 
-    if v_length < 128 {
-        der.push(v_length as u8);
-    } else if v_length < 256 {
-        der.push(0x81);
-        der.push(v_length as u8);
-    } else {
-        der.push(0x82);
-        der.extend((v_length as u16).to_be_bytes());
+        der.truncate(len as usize);
+        Ok(der)
     }
-
-    der.push(INTEGER_TAG);
-    der.push((r.len() + r_sign.len()) as u8);
-    der.extend(r_sign);
-    der.extend(r);
-
-    der.push(INTEGER_TAG);
-    der.push((s.len() + s_sign.len()) as u8);
-    der.extend(s_sign);
-    der.extend(s);
-
-    Ok(der)
 }
 
 /// Custom implementation of `rustls` SigningKey trait
@@ -225,63 +225,90 @@ impl SigningKey for CngSigningKey {
 
 #[cfg(test)]
 mod tests {
-    use asn1::{BigUint, Sequence};
+    use std::ptr;
 
-    #[allow(clippy::result_large_err)]
-    fn validate_der(data: &[u8], r: &BigUint, s: &BigUint) {
-        let (parsed_r, parsed_s) = asn1::parse(data, |parser| {
-            parser.read_element::<Sequence>()?.parse(|parser| {
-                Ok::<_, asn1::ParseError>((parser.read_element::<BigUint>()?, parser.read_element::<BigUint>()?))
-            })
-        })
-        .unwrap();
+    use windows_sys::Win32::Security::Cryptography::{
+        CERT_ECC_SIGNATURE, CRYPT_INTEGER_BLOB, CryptDecodeObjectEx, X509_ASN_ENCODING, X509_ECC_SIGNATURE,
+    };
 
-        assert_eq!(parsed_r, *r);
-        assert_eq!(parsed_s, *s);
+    // Extract the big-endian magnitude of a CNG integer blob, which is stored in little-endian order.
+    unsafe fn blob_to_be(blob: &CRYPT_INTEGER_BLOB) -> Vec<u8> {
+        let le = unsafe { std::slice::from_raw_parts(blob.pbData, blob.cbData as usize) };
+        let mut be = le.iter().rev().copied().collect::<Vec<u8>>();
+        while be.len() > 1 && be[0] == 0 {
+            be.remove(0);
+        }
+        be
+    }
+
+    // Decode a DER-encoded ECDSA signature via the Win32 API and return the (r, s) integers
+    // as big-endian magnitude byte vectors.
+    fn decode_der(data: &[u8]) -> (Vec<u8>, Vec<u8>) {
+        unsafe {
+            // First call retrieves the required output buffer size.
+            let mut len = 0u32;
+            let status = CryptDecodeObjectEx(
+                X509_ASN_ENCODING,
+                X509_ECC_SIGNATURE,
+                data.as_ptr(),
+                data.len() as u32,
+                0,
+                ptr::null(),
+                ptr::null_mut(),
+                &mut len,
+            );
+            assert_ne!(status, 0, "CryptDecodeObjectEx failed to size the output");
+
+            let mut buf = vec![0u8; len as usize];
+            let status = CryptDecodeObjectEx(
+                X509_ASN_ENCODING,
+                X509_ECC_SIGNATURE,
+                data.as_ptr(),
+                data.len() as u32,
+                0,
+                ptr::null(),
+                buf.as_mut_ptr() as *mut core::ffi::c_void,
+                &mut len,
+            );
+            assert_ne!(status, 0, "CryptDecodeObjectEx failed to decode");
+
+            let sig = &*(buf.as_ptr() as *const CERT_ECC_SIGNATURE);
+            (blob_to_be(&sig.r), blob_to_be(&sig.s))
+        }
+    }
+
+    fn validate_der(data: &[u8], r: &[u8], s: &[u8]) {
+        let (parsed_r, parsed_s) = decode_der(data);
+        assert_eq!(parsed_r, r);
+        assert_eq!(parsed_s, s);
     }
 
     #[test]
     fn test_p1363_to_der() {
         let p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
         let der = super::p1363_to_der(&p1363).unwrap();
-        validate_der(
-            &der,
-            &BigUint::new(&[1, 2, 3, 4]).unwrap(),
-            &BigUint::new(&[5, 6, 7, 8]).unwrap(),
-        );
+        validate_der(&der, &[1, 2, 3, 4], &[5, 6, 7, 8]);
     }
 
     #[test]
     fn test_p1363_to_der_signed() {
         let p1363 = [0x81, 2, 3, 4, 0x85, 6, 7, 8];
         let der = super::p1363_to_der(&p1363).unwrap();
-        validate_der(
-            &der,
-            &BigUint::new(&[0, 0x81, 2, 3, 4]).unwrap(),
-            &BigUint::new(&[0, 0x85, 6, 7, 8]).unwrap(),
-        );
+        validate_der(&der, &[0x81, 2, 3, 4], &[0x85, 6, 7, 8]);
     }
 
     #[test]
     fn test_p1363_to_der_zeroes_stripped() {
         let p1363 = [0, 1, 2, 3, 4, 0, 5, 6, 7, 8];
         let der = super::p1363_to_der(&p1363).unwrap();
-        validate_der(
-            &der,
-            &BigUint::new(&[1, 2, 3, 4]).unwrap(),
-            &BigUint::new(&[5, 6, 7, 8]).unwrap(),
-        );
+        validate_der(&der, &[1, 2, 3, 4], &[5, 6, 7, 8]);
     }
 
     #[test]
     fn test_p1363_to_der_signed_zeroes_stripped() {
         let p1363 = [0, 0x81, 2, 3, 4, 0, 0x85, 6, 7, 8];
         let der = super::p1363_to_der(&p1363).unwrap();
-        validate_der(
-            &der,
-            &BigUint::new(&[0, 0x81, 2, 3, 4]).unwrap(),
-            &BigUint::new(&[0, 0x85, 6, 7, 8]).unwrap(),
-        );
+        validate_der(&der, &[0x81, 2, 3, 4], &[0x85, 6, 7, 8]);
     }
 
     #[test]
@@ -291,6 +318,9 @@ mod tests {
 
         let p1363 = r.clone().into_iter().chain(s.clone()).collect::<Vec<u8>>();
         let der = super::p1363_to_der(&p1363).unwrap();
-        validate_der(&der, &BigUint::new(&r).unwrap(), &BigUint::new(&s).unwrap());
+
+        // The decoded magnitude has the padding zero stripped.
+        let expected_s = (128..254).rev().collect::<Vec<u8>>();
+        validate_der(&der, &r, &expected_s);
     }
 }
