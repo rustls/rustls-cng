@@ -55,7 +55,9 @@ fn p1363_to_der(data: &[u8]) -> Result<Vec<u8>, Error> {
             &mut len,
         );
         if status == 0 {
-            return Err(Error::General("CryptEncodeObjectEx failed to size the signature".to_owned()));
+            return Err(Error::General(
+                "CryptEncodeObjectEx failed to size the signature".to_owned(),
+            ));
         }
 
         let mut der = vec![0u8; len as usize];
@@ -69,7 +71,9 @@ fn p1363_to_der(data: &[u8]) -> Result<Vec<u8>, Error> {
             &mut len,
         );
         if status == 0 {
-            return Err(Error::General("CryptEncodeObjectEx failed to encode the signature".to_owned()));
+            return Err(Error::General(
+                "CryptEncodeObjectEx failed to encode the signature".to_owned(),
+            ));
         }
 
         der.truncate(len as usize);
