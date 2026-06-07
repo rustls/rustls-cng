@@ -194,7 +194,7 @@ impl Signer for CngSigner {
             .map_err(|e| Error::Other(OtherError::new(Arc::new(e))))?;
 
         if padding == SignaturePadding::None {
-            // For ECDSA keys Windows produces IEEE-P1363 signatures which must be converted to DER format
+            // For ECC keys Windows produces IEEE-P1363 signatures which must be converted to DER format
             p1363_to_der(&mut signature)
         } else {
             Ok(signature)
