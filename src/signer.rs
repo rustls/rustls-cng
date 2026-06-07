@@ -17,27 +17,25 @@ use crate::key::{AlgorithmGroup, NCryptKey, SignaturePadding};
 // Convert an IEEE-P1363 (raw r || s) signature into DER encoding using the Win32 API.
 // CryptEncodeObjectEx with X509_ECC_SIGNATURE produces the DER `SEQUENCE { INTEGER r, INTEGER s }`,
 // taking care of minimal-length and sign-byte padding of the integers.
-fn p1363_to_der(data: &[u8]) -> Result<Vec<u8>, Error> {
+fn p1363_to_der(data: &mut [u8]) -> Result<Vec<u8>, Error> {
     if data.is_empty() || !data.len().is_multiple_of(2) {
         return Err(Error::General("Invalid signature size".to_owned()));
     }
 
-    let (r, s) = data.split_at(data.len() / 2);
+    let (r, s) = data.split_at_mut(data.len() / 2);
 
-    // CNG integer blobs are little-endian, so reverse the big-endian halves.
-    let mut r_le = r.to_vec();
-    r_le.reverse();
-    let mut s_le = s.to_vec();
-    s_le.reverse();
+    // CNG integer blobs are little-endian, so reverse the big-endian halves in place.
+    r.reverse();
+    s.reverse();
 
     let sig = CERT_ECC_SIGNATURE {
         r: CRYPT_INTEGER_BLOB {
-            cbData: r_le.len() as u32,
-            pbData: r_le.as_mut_ptr(),
+            cbData: r.len() as u32,
+            pbData: r.as_mut_ptr(),
         },
         s: CRYPT_INTEGER_BLOB {
-            cbData: s_le.len() as u32,
-            pbData: s_le.as_mut_ptr(),
+            cbData: s.len() as u32,
+            pbData: s.as_mut_ptr(),
         },
     };
     let sig_ptr = std::ptr::from_ref(&sig).cast();
@@ -190,14 +188,14 @@ impl CngSigner {
 impl Signer for CngSigner {
     fn sign(self: Box<CngSigner>, message: &[u8]) -> Result<Vec<u8>, Error> {
         let (hash, padding) = self.hash(message)?;
-        let signature = self
+        let mut signature = self
             .key
             .sign(&hash, padding)
             .map_err(|e| Error::Other(OtherError::new(Arc::new(e))))?;
 
         if padding == SignaturePadding::None {
             // For ECDSA keys Windows produces IEEE-P1363 signatures which must be converted to DER format
-            p1363_to_der(&signature)
+            p1363_to_der(&mut signature)
         } else {
             Ok(signature)
         }
@@ -289,29 +287,29 @@ mod tests {
 
     #[test]
     fn test_p1363_to_der() {
-        let p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363).unwrap();
+        let mut p1363 = [1, 2, 3, 4, 5, 6, 7, 8];
+        let der = super::p1363_to_der(&mut p1363).unwrap();
         validate_der(&der, &[1, 2, 3, 4], &[5, 6, 7, 8]);
     }
 
     #[test]
     fn test_p1363_to_der_signed() {
-        let p1363 = [0x81, 2, 3, 4, 0x85, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363).unwrap();
+        let mut p1363 = [0x81, 2, 3, 4, 0x85, 6, 7, 8];
+        let der = super::p1363_to_der(&mut p1363).unwrap();
         validate_der(&der, &[0x81, 2, 3, 4], &[0x85, 6, 7, 8]);
     }
 
     #[test]
     fn test_p1363_to_der_zeroes_stripped() {
-        let p1363 = [0, 1, 2, 3, 4, 0, 5, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363).unwrap();
+        let mut p1363 = [0, 1, 2, 3, 4, 0, 5, 6, 7, 8];
+        let der = super::p1363_to_der(&mut p1363).unwrap();
         validate_der(&der, &[1, 2, 3, 4], &[5, 6, 7, 8]);
     }
 
     #[test]
     fn test_p1363_to_der_signed_zeroes_stripped() {
-        let p1363 = [0, 0x81, 2, 3, 4, 0, 0x85, 6, 7, 8];
-        let der = super::p1363_to_der(&p1363).unwrap();
+        let mut p1363 = [0, 0x81, 2, 3, 4, 0, 0x85, 6, 7, 8];
+        let der = super::p1363_to_der(&mut p1363).unwrap();
         validate_der(&der, &[0x81, 2, 3, 4], &[0x85, 6, 7, 8]);
     }
 
@@ -320,8 +318,8 @@ mod tests {
         let r = (1..128).collect::<Vec<u8>>();
         let s = (128..254).chain([0]).rev().collect::<Vec<u8>>();
 
-        let p1363 = r.clone().into_iter().chain(s.clone()).collect::<Vec<u8>>();
-        let der = super::p1363_to_der(&p1363).unwrap();
+        let mut p1363 = r.clone().into_iter().chain(s.clone()).collect::<Vec<u8>>();
+        let der = super::p1363_to_der(&mut p1363).unwrap();
 
         // The decoded magnitude has the padding zero stripped.
         let expected_s = (128..254).rev().collect::<Vec<u8>>();
