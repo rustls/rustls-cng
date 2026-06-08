@@ -105,8 +105,8 @@ impl CngSigningKey {
     }
 
     /// Return algorithm group of the key
-    pub fn algorithm_group(&self) -> &AlgorithmGroup {
-        &self.algorithm_group
+    pub fn algorithm_group(&self) -> AlgorithmGroup {
+        self.algorithm_group
     }
 
     /// Return a number of bits in the key material
