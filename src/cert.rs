@@ -90,7 +90,7 @@ impl CertContext {
     }
 
     /// Return DER-encoded X.509 certificate chain.
-    // (1) exclude the root. (2) check leaf cert to determine to use HKLM engine or HKCU engine
+    // (1) exclude the root. (2) check leaf cert to determine whether to use HKLM engine or HKCU engine
     pub fn as_chain_der(&self) -> Result<Vec<Vec<u8>>> {
         unsafe {
             let param = CERT_CHAIN_PARA {
