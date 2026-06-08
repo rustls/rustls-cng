@@ -1,19 +1,13 @@
 //! Windows certificate store wrapper
 
-use std::{os::raw::c_void, ptr};
+use std::ptr;
 
 use bitflags::bitflags;
 use windows_sys::Win32::Security::Cryptography::*;
 
-use crate::{Result, cert::CertContext, error::CngError};
+use crate::{Result, cert::CertContext, error::CngError, utf16z};
 
 const MY_ENCODING_TYPE: CERT_QUERY_ENCODING_TYPE = PKCS_7_ASN_ENCODING | X509_ASN_ENCODING;
-
-macro_rules! utf16z {
-    ($str: expr) => {
-        $str.encode_utf16().chain([0]).collect::<Vec<_>>()
-    };
-}
 
 /// Certificate store type
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd)]
@@ -73,7 +67,7 @@ impl CertStore {
                 CERT_QUERY_ENCODING_TYPE::default(),
                 HCRYPTPROV_LEGACY::default(),
                 store_type.as_flags() | CERT_STORE_OPEN_EXISTING_FLAG,
-                store_name.as_ptr() as _,
+                store_name.as_ptr().cast(),
             );
             if handle.is_null() {
                 Err(CngError::from_win32_error())
@@ -88,7 +82,7 @@ impl CertStore {
         unsafe {
             let blob = CRYPT_INTEGER_BLOB {
                 cbData: data.len() as u32,
-                pbData: data.as_ptr() as _,
+                pbData: data.as_ptr().cast_mut(),
             };
 
             let password = utf16z!(password);
@@ -140,9 +134,9 @@ impl CertStore {
     {
         let hash_blob = CRYPT_INTEGER_BLOB {
             cbData: hash.as_ref().len() as u32,
-            pbData: hash.as_ref().as_ptr() as _,
+            pbData: hash.as_ref().as_ptr().cast_mut(),
         };
-        self.do_find(CERT_FIND_HASH, &hash_blob as *const _ as _)
+        self.do_find(CERT_FIND_HASH, &hash_blob)
     }
 
     // Windows added CERT_FIND_SHA256_HASH in the recent OS releases.
@@ -158,9 +152,9 @@ impl CertStore {
     {
         let hash_blob = CRYPT_INTEGER_BLOB {
             cbData: hash.as_ref().len() as u32,
-            pbData: hash.as_ref().as_ptr() as _,
+            pbData: hash.as_ref().as_ptr().cast_mut(),
         };
-        self.do_find_by_sha256_property(&hash_blob as *const _ as _)
+        self.do_find_by_sha256_property(&hash_blob)
     }
 
     /// Find a list of certificates matching the key identifier
@@ -173,26 +167,26 @@ impl CertStore {
             Anonymous: CERT_ID_0 {
                 KeyId: CRYPT_INTEGER_BLOB {
                     cbData: key_id.as_ref().len() as u32,
-                    pbData: key_id.as_ref().as_ptr() as _,
+                    pbData: key_id.as_ref().as_ptr().cast_mut(),
                 },
             },
         };
-        self.do_find(CERT_FIND_CERT_ID, &cert_id as *const _ as _)
+        self.do_find(CERT_FIND_CERT_ID, &cert_id)
     }
 
     /// Get all certificates
     pub fn find_all(&self) -> Result<Vec<CertContext>> {
-        self.do_find(CERT_FIND_ANY, ptr::null())
+        self.do_find(CERT_FIND_ANY, ptr::null::<std::os::raw::c_void>())
     }
 
-    fn do_find(&self, flags: CERT_FIND_FLAGS, find_param: *const c_void) -> Result<Vec<CertContext>> {
+    fn do_find<T>(&self, flags: CERT_FIND_FLAGS, find_param: *const T) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
         unsafe {
             let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
 
             loop {
-                cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param, cert);
+                cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, flags, find_param.cast(), cert);
                 if cert.is_null() {
                     break;
                 } else {
@@ -205,15 +199,15 @@ impl CertStore {
         Ok(certs)
     }
 
-    fn do_find_by_sha256_property(&self, find_param: *const c_void) -> Result<Vec<CertContext>> {
+    fn do_find_by_sha256_property(&self, hash_blob: &CRYPT_INTEGER_BLOB) -> Result<Vec<CertContext>> {
         let mut certs = Vec::new();
 
         unsafe {
             let mut cert: *mut CERT_CONTEXT = ptr::null_mut();
-            let hash_blob = &*(find_param as *const CRYPT_INTEGER_BLOB);
             let sha256_hash = std::slice::from_raw_parts(hash_blob.pbData, hash_blob.cbData as usize);
+            // CERT_FIND_ANY ignores pvFindPara; we filter by the SHA256 property below.
             loop {
-                cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, CERT_FIND_ANY, find_param, cert);
+                cert = CertFindCertificateInStore(self.0, MY_ENCODING_TYPE, 0, CERT_FIND_ANY, ptr::null(), cert);
                 if cert.is_null() {
                     break;
                 } else {
@@ -223,7 +217,7 @@ impl CertStore {
                     if CertGetCertificateContextProperty(
                         cert,
                         CERT_SHA256_HASH_PROP_ID,
-                        prop_data.as_mut_ptr() as *mut c_void,
+                        prop_data.as_mut_ptr().cast(),
                         &mut prop_data_len,
                     ) != 0
                         && prop_data[..prop_data_len as usize] == sha256_hash[..]
@@ -239,7 +233,9 @@ impl CertStore {
 
     fn find_by_str(&self, pattern: &str, flags: CERT_FIND_FLAGS) -> Result<Vec<CertContext>> {
         let u16pattern = utf16z!(pattern);
-        self.do_find(flags, u16pattern.as_ptr() as _)
+        // For the *_STR find types pvFindPara is an LPCWSTR, i.e. a pointer to the
+        // wide-char data itself - not to the Vec header.
+        self.do_find(flags, u16pattern.as_ptr())
     }
 
     fn find_by_name(&self, field: &str, flags: CERT_FIND_FLAGS) -> Result<Vec<CertContext>> {
@@ -279,7 +275,7 @@ impl CertStore {
                 pbData: x509name.as_mut_ptr(),
             };
 
-            self.do_find(flags, &name_blob as *const _ as _)
+            self.do_find(flags, &name_blob)
         }
     }
 }

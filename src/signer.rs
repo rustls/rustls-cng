@@ -88,7 +88,7 @@ pub struct CngSigningKey {
 }
 
 impl CngSigningKey {
-    /// Create instance from the CNG key
+    /// Create an instance from the CNG key
     pub fn new(key: NCryptKey) -> crate::Result<Self> {
         let group = key.algorithm_group()?;
         let bits = key.bits()?;
@@ -171,7 +171,7 @@ impl CngSigner {
                 alg,
                 std::ptr::null_mut(), // pbSecret
                 0,                    // cbSecret
-                message.as_ptr() as *mut u8,
+                message.as_ptr().cast(),
                 message.len() as u32,
                 hash.as_mut_ptr(),
                 hash_len as u32,
@@ -269,12 +269,12 @@ mod tests {
                 data.len() as u32,
                 0,
                 ptr::null(),
-                buf.as_mut_ptr() as *mut core::ffi::c_void,
+                buf.as_mut_ptr().cast(),
                 &mut len,
             );
             assert_ne!(status, 0, "CryptDecodeObjectEx failed to decode");
 
-            let sig = &*(buf.as_ptr() as *const CERT_ECC_SIGNATURE);
+            let sig: &CERT_ECC_SIGNATURE = &*buf.as_ptr().cast();
             (blob_to_be(&sig.r), blob_to_be(&sig.s))
         }
     }
