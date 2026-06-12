@@ -80,7 +80,7 @@ fn p1363_to_der(data: &mut [u8]) -> Result<Vec<u8>, Error> {
 }
 
 /// Custom implementation of `rustls` SigningKey trait
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CngSigningKey {
     key: NCryptKey,
     algorithm_group: AlgorithmGroup,

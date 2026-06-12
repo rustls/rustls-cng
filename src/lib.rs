@@ -2,6 +2,7 @@
 #![doc = include_str!("../README.md")]
 
 pub mod cert;
+pub mod config;
 pub mod error;
 pub mod key;
 pub mod signer;

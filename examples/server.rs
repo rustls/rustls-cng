@@ -6,60 +6,43 @@ use std::{
 
 use rustls::{
     RootCertStore, ServerConfig, ServerConnection,
-    crypto::{Credentials, Identity, SelectedCredential},
-    server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
+    server::{ClientHello, WebPkiClientVerifier},
 };
 use rustls_cng::{
-    signer::CngSigningKey,
+    config::{CngCredentials, WithCngServerCredentials},
     store::{CertStore, CertStoreType},
 };
 use rustls_util::Stream;
 
 const PORT: u16 = 8000;
 
-#[derive(Debug)]
-pub struct ServerCertResolver {
-    store: CertStore,
-}
+fn resolve(store: &CertStore, client_hello: &ClientHello) -> Result<CngCredentials, rustls::Error> {
+    let name = client_hello
+        .server_name()
+        .ok_or_else(|| rustls::Error::NoSuitableCertificate)
+        .inspect_err(|e| println!("{}", e))?;
 
-impl ServerCredentialResolver for ServerCertResolver {
-    fn resolve(&self, client_hello: &ClientHello) -> Result<SelectedCredential, rustls::Error> {
-        println!("Client hello server name: {:?}", client_hello.server_name());
-        let name = client_hello
-            .server_name()
-            .ok_or_else(|| rustls::Error::NoSuitableCertificate)
-            .inspect_err(|e| println!("{}", e))?;
+    let contexts = store
+        .find_by_subject_str(name)
+        .map_err(|_| rustls::Error::NoSuitableCertificate)
+        .inspect_err(|e| println!("{}", e))?;
 
-        let contexts = self
-            .store
-            .find_by_subject_str(name)
-            .map_err(|_| rustls::Error::NoSuitableCertificate)
-            .inspect_err(|e| println!("{}", e))?;
+    let (context, key) = contexts
+        .into_iter()
+        .find_map(|ctx| {
+            let key = ctx.acquire_key(false).ok()?;
+            Some((ctx, key))
+        })
+        .ok_or_else(|| rustls::Error::NoSuitableCertificate)
+        .inspect_err(|e| println!("{}", e))?;
 
-        let (context, key) = contexts
-            .into_iter()
-            .find_map(|ctx| {
-                let key = ctx.acquire_key(false).ok()?;
-                CngSigningKey::new(key).ok().map(|key| (ctx, key))
-            })
-            .ok_or_else(|| rustls::Error::NoSuitableCertificate)
-            .inspect_err(|e| println!("{}", e))?;
+    let chain = context
+        .as_chain_der()
+        .map_err(|_| rustls::Error::NoSuitableCertificate)
+        .inspect_err(|e| println!("{}", e))?;
 
-        println!("Key alg group: {:?}", key.key().algorithm_group());
-        println!("Key alg: {:?}", key.key().algorithm());
-
-        let chain = context
-            .as_chain_der()
-            .map_err(|_| rustls::Error::NoSuitableCertificate)
-            .inspect_err(|e| println!("{}", e))?;
-
-        let certs = chain.into_iter().map(Into::into).collect();
-
-        Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(certs)?), Box::new(key))
-            .signer(client_hello.signature_schemes())
-            .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
-            .inspect_err(|e| println!("{}", e))
-    }
+    let certs = chain.into_iter().map(Into::into).collect();
+    Ok(CngCredentials::new(key, certs))
 }
 
 fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
@@ -104,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
         .with_client_cert_verifier(Arc::new(verifier))
-        .with_server_credential_resolver(Arc::new(ServerCertResolver { store }))?;
+        .with_cng_server_credentials(move |client_hello| resolve(&store, client_hello))?;
 
     let server = TcpListener::bind(format!("127.0.0.1:{PORT}"))?;
 

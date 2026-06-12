@@ -1,58 +1,27 @@
 use std::{
-    hash::Hasher,
     io::{Read, Write},
     net::{Shutdown, TcpStream},
     sync::Arc,
 };
 
-use rustls::{
-    ClientConfig, RootCertStore,
-    client::{ClientCredentialResolver, CredentialRequest},
-    crypto::{Credentials, Identity, SelectedCredential},
-    enums::CertificateType,
-    pki_types::{CertificateDer, ServerName},
-};
+use rustls::{ClientConfig, RootCertStore, pki_types::ServerName};
 use rustls_cng::{
-    signer::CngSigningKey,
+    config::{CngCredentials, WithCngClientCredentials},
     store::{CertStore, CertStoreType},
 };
 use rustls_util::Stream;
 
 const PORT: u16 = 8000;
 
-#[derive(Debug)]
-pub struct ClientCertResolver {
-    store: CertStore,
-    cert_name: String,
-}
-
-fn get_chain(
-    store: &CertStore,
-    name: &str,
-) -> Result<(Vec<CertificateDer<'static>>, CngSigningKey), Box<dyn std::error::Error>> {
+fn get_credentials(name: &str) -> Result<CngCredentials, Box<dyn std::error::Error>> {
+    let store = CertStore::open(CertStoreType::CurrentUser, "my")?;
     let contexts = store.find_by_subject_str(name)?;
     let context = contexts
         .first()
         .ok_or_else(|| std::io::Error::other("No client cert"))?;
     let key = context.acquire_key(false)?;
-    let signing_key = CngSigningKey::new(key)?;
     let chain = context.as_chain_der()?.into_iter().map(Into::into).collect();
-    Ok((chain, signing_key))
-}
-
-impl ClientCredentialResolver for ClientCertResolver {
-    fn resolve(&self, server_hello: &CredentialRequest) -> Option<SelectedCredential> {
-        println!("Server sig schemes: {:?}", server_hello.signature_schemes());
-        let (chain, signing_key) = get_chain(&self.store, &self.cert_name).ok()?;
-        Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(chain).ok()?), Box::new(signing_key))
-            .signer(server_hello.signature_schemes())
-    }
-
-    fn supported_certificate_types(&self) -> &'static [CertificateType] {
-        &[CertificateType::X509]
-    }
-
-    fn hash_config(&self, _: &mut dyn Hasher) {}
+    Ok(CngCredentials::new(key, chain))
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -62,8 +31,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let store = CertStore::open(CertStoreType::CurrentUser, "my")?;
-
     let mut root_store = RootCertStore::empty();
     root_store.add_parsable_certificates(rustls_native_certs::load_native_certs().certs);
 
@@ -71,10 +38,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER)).with_root_certificates(root_store);
 
     let client_config = Arc::new(if let Some(client_cert) = args.get(2) {
-        builder.with_client_credential_resolver(Arc::new(ClientCertResolver {
-            store,
-            cert_name: client_cert.clone(),
-        }))?
+        let credentials = get_credentials(client_cert)?;
+        builder.with_cng_client_credentials(credentials)?
     } else {
         builder.with_no_client_auth()?
     });
