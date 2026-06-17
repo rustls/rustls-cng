@@ -43,8 +43,8 @@ pub trait WithCngClientCredentials {
 
 impl WithCngClientCredentials for ConfigBuilder<ClientConfig, WantsClientCert> {
     fn with_cng_client_credentials(self, credentials: CngCredentials) -> Result<ClientConfig, Error> {
-        let key = CngSigningKey::new(credentials.key.clone()).map_err(|_| Error::NoSuitableCertificate)?;
-        let identity = Identity::from_cert_chain(credentials.chain.clone())?;
+        let key = CngSigningKey::new(credentials.key).map_err(|_| Error::NoSuitableCertificate)?;
+        let identity = Identity::from_cert_chain(credentials.chain)?;
         self.with_client_credential_resolver(Arc::new(ClientCertResolver {
             key,
             identity: Arc::new(identity),
