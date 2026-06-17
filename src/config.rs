@@ -103,10 +103,10 @@ where
     fn resolve(&self, client_hello: &ClientHello<'_>) -> Result<SelectedCredential, Error> {
         let credentials = self.0(client_hello)?;
 
-        let signing_key = CngSigningKey::new(credentials.key.clone()).map_err(|_| Error::NoSuitableCertificate)?;
+        let signing_key = CngSigningKey::new(credentials.key).map_err(|_| Error::NoSuitableCertificate)?;
 
         Credentials::new_unchecked(
-            Arc::new(Identity::from_cert_chain(credentials.chain.clone())?),
+            Arc::new(Identity::from_cert_chain(credentials.chain)?),
             Box::new(signing_key),
         )
         .signer(client_hello.signature_schemes())
