@@ -14,24 +14,14 @@ use crate::{key::NCryptKey, signer::CngSigningKey};
 /// CNG credentials with a private key and a certificate chain.
 #[derive(Debug)]
 pub struct CngCredentials {
-    key: NCryptKey,
-    chain: Vec<CertificateDer<'static>>,
+    pub key: NCryptKey,
+    pub chain: Vec<CertificateDer<'static>>,
 }
 
 impl CngCredentials {
     /// Create credentials from a private key and certificate chain.
     pub fn new(key: NCryptKey, chain: Vec<CertificateDer<'static>>) -> Self {
         Self { key, chain }
-    }
-
-    /// Get the private key.
-    pub fn key(&self) -> &NCryptKey {
-        &self.key
-    }
-
-    /// Get the certificate chain.
-    pub fn chain(&self) -> &[CertificateDer<'static>] {
-        &self.chain
     }
 }
 
