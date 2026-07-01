@@ -21,7 +21,7 @@ fn get_credentials(name: &str) -> Result<CngCredentials, Box<dyn std::error::Err
         .ok_or_else(|| std::io::Error::other("No client cert"))?;
     let key = context.acquire_key(false)?;
     let chain = context.as_chain_der()?.into_iter().map(Into::into).collect();
-    Ok(CngCredentials::new(key, chain))
+    Ok(CngCredentials { key, chain })
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

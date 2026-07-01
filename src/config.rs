@@ -12,17 +12,10 @@ use rustls::{
 use crate::{key::NCryptKey, signer::CngSigningKey};
 
 /// CNG credentials with a private key and a certificate chain.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CngCredentials {
     pub key: NCryptKey,
     pub chain: Vec<CertificateDer<'static>>,
-}
-
-impl CngCredentials {
-    /// Create credentials from a private key and certificate chain.
-    pub fn new(key: NCryptKey, chain: Vec<CertificateDer<'static>>) -> Self {
-        Self { key, chain }
-    }
 }
 
 /// Extension trait for `ConfigBuilder` to add CNG client credentials.

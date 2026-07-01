@@ -42,7 +42,7 @@ fn resolve(store: &CertStore, client_hello: &ClientHello) -> Result<CngCredentia
         .inspect_err(|e| println!("{}", e))?;
 
     let certs = chain.into_iter().map(Into::into).collect();
-    Ok(CngCredentials::new(key, certs))
+    Ok(CngCredentials { key, chain: certs })
 }
 
 fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
