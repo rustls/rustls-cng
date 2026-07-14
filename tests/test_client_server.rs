@@ -12,7 +12,7 @@ mod client {
     };
 
     use rustls::{
-        ClientConfig, RootCertStore,
+        ClientConfig, RootCertStore, VecInput,
         client::{ClientCredentialResolver, CredentialRequest},
         crypto::{Credentials, Identity, SelectedCredential},
         enums::CertificateType,
@@ -72,8 +72,9 @@ mod client {
 
         let mut connection = client_config.connect("rustls-server".try_into()?).build()?;
         let mut client = TcpStream::connect(format!("localhost:{port}"))?;
+        let mut input = VecInput::default();
 
-        let mut tls_stream = Stream::new(&mut connection, &mut client);
+        let mut tls_stream = Stream::new(&mut input, &mut connection, &mut client);
         tls_stream.write_all(b"ping")?;
         tls_stream.sock.shutdown(Shutdown::Write)?;
 
@@ -95,7 +96,7 @@ mod server {
     };
 
     use rustls::{
-        RootCertStore, ServerConfig, ServerConnection,
+        RootCertStore, ServerConfig, ServerConnection, VecInput,
         crypto::{Credentials, Identity, SelectedCredential},
         server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
     };
@@ -140,7 +141,8 @@ mod server {
 
     fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
         let mut connection = ServerConnection::new(config)?;
-        let mut tls_stream = Stream::new(&mut connection, &mut stream);
+        let mut input = VecInput::default();
+        let mut tls_stream = Stream::new(&mut input, &mut connection, &mut stream);
 
         let mut buf = [0u8; 4];
         tls_stream.read_exact(&mut buf)?;
