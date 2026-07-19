@@ -5,54 +5,30 @@ const PASSWORD: &str = "changeit";
 
 mod client {
     use std::{
-        hash::Hasher,
         io::{Read, Write},
         net::{Shutdown, TcpStream},
         sync::Arc,
     };
 
-    use rustls::{
-        ClientConfig, RootCertStore, VecInput,
-        client::{ClientCredentialResolver, CredentialRequest},
-        crypto::{Credentials, Identity, SelectedCredential},
-        enums::CertificateType,
-        pki_types::CertificateDer,
-    };
+    use rustls::{ClientConfig, RootCertStore, VecInput, pki_types::CertificateDer};
     use rustls_cng::{
-        signer::CngSigningKey,
+        config::{CngCredentials, WithCngClientCredentials},
+        key::NCryptKey,
         store::{CertStore, Pkcs12Flags},
     };
     use rustls_util::Stream;
 
-    #[derive(Debug)]
-    pub struct ClientCertResolver(CertStore, String);
-
     fn get_chain(
         store: &CertStore,
         name: &str,
-    ) -> Result<(Vec<CertificateDer<'static>>, CngSigningKey), Box<dyn std::error::Error>> {
+    ) -> Result<(Vec<CertificateDer<'static>>, NCryptKey), Box<dyn std::error::Error>> {
         let contexts = store.find_by_subject_str(name)?;
         let context = contexts
             .first()
             .ok_or_else(|| std::io::Error::other("No client cert"))?;
         let key = context.acquire_key(true)?;
-        let signing_key = CngSigningKey::new(key)?;
         let chain = context.as_chain_der()?.into_iter().map(Into::into).collect();
-        Ok((chain, signing_key))
-    }
-
-    impl ClientCredentialResolver for ClientCertResolver {
-        fn resolve(&self, server_hello: &CredentialRequest) -> Option<SelectedCredential> {
-            let (chain, signing_key) = get_chain(&self.0, &self.1).ok()?;
-            Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(chain).ok()?), Box::new(signing_key))
-                .signer(server_hello.signature_schemes())
-        }
-
-        fn supported_certificate_types(&self) -> &'static [CertificateType] {
-            &[CertificateType::X509]
-        }
-
-        fn hash_config(&self, _: &mut dyn Hasher) {}
+        Ok((chain, key))
     }
 
     pub fn run_client(port: u16) -> Result<(), Box<dyn std::error::Error>> {
@@ -64,10 +40,13 @@ mod client {
         let mut root_store = RootCertStore::empty();
         root_store.add(ca_cert.as_der().into())?;
 
+        let (certs, key) = get_chain(&store, "rustls-client")?;
+        let credentials = CngCredentials { key, chain: certs };
+
         let client_config = Arc::new(
             ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
                 .with_root_certificates(root_store)
-                .with_client_credential_resolver(Arc::new(ClientCertResolver(store, "rustls-client".to_string())))?,
+                .with_cng_client_credentials(credentials)?,
         );
 
         let mut connection = client_config.connect("rustls-server".try_into()?).build()?;
@@ -97,46 +76,34 @@ mod server {
 
     use rustls::{
         RootCertStore, ServerConfig, ServerConnection, VecInput,
-        crypto::{Credentials, Identity, SelectedCredential},
-        server::{ClientHello, ServerCredentialResolver, WebPkiClientVerifier},
+        server::{ClientHello, WebPkiClientVerifier},
     };
     use rustls_cng::{
-        signer::CngSigningKey,
+        config::{CngCredentials, WithCngServerCredentials},
         store::{CertStore, Pkcs12Flags},
     };
     use rustls_util::Stream;
 
-    #[derive(Debug)]
-    pub struct ServerCertResolver(CertStore);
+    fn resolve(store: &CertStore, client_hello: &ClientHello) -> Result<CngCredentials, rustls::Error> {
+        let name = client_hello
+            .server_name()
+            .ok_or_else(|| rustls::Error::NoSuitableCertificate)?;
 
-    impl ServerCredentialResolver for ServerCertResolver {
-        fn resolve(&self, client_hello: &ClientHello) -> Result<SelectedCredential, rustls::Error> {
-            let name = client_hello
-                .server_name()
-                .ok_or_else(|| rustls::Error::NoSuitableCertificate)?;
+        let contexts = store
+            .find_by_subject_str(name)
+            .map_err(|_| rustls::Error::NoSuitableCertificate)?;
 
-            let contexts = self
-                .0
-                .find_by_subject_str(name)
-                .map_err(|_| rustls::Error::NoSuitableCertificate)?;
+        let (context, key) = contexts
+            .into_iter()
+            .find_map(|ctx| ctx.acquire_key(true).ok().map(|key| (ctx, key)))
+            .ok_or_else(|| rustls::Error::NoSuitableCertificate)?;
 
-            let (context, key) = contexts
-                .into_iter()
-                .find_map(|ctx| {
-                    let key = ctx.acquire_key(true).ok()?;
-                    CngSigningKey::new(key).ok().map(|key| (ctx, key))
-                })
-                .ok_or_else(|| rustls::Error::NoSuitableCertificate)?;
+        let chain = context
+            .as_chain_der()
+            .map_err(|_| rustls::Error::NoSuitableCertificate)?;
+        let certs = chain.into_iter().map(Into::into).collect();
 
-            let chain = context
-                .as_chain_der()
-                .map_err(|_| rustls::Error::NoSuitableCertificate)?;
-            let certs = chain.into_iter().map(Into::into).collect();
-
-            Credentials::new_unchecked(Arc::new(Identity::from_cert_chain(certs)?), Box::new(key))
-                .signer(client_hello.signature_schemes())
-                .ok_or_else(|| rustls::Error::General("No common schemes".to_owned()))
-        }
+        Ok(CngCredentials { key, chain: certs })
     }
 
     fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
@@ -168,7 +135,7 @@ mod server {
 
         let server_config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
             .with_client_cert_verifier(Arc::new(verifier))
-            .with_server_credential_resolver(Arc::new(ServerCertResolver(store)))?;
+            .with_cng_server_credentials(move |hello| resolve(&store, hello))?;
 
         let server = TcpListener::bind("127.0.0.1:0")?;
 
@@ -187,10 +154,10 @@ fn test_client_server() {
     let (tx, rx) = std::sync::mpsc::channel();
 
     std::thread::spawn(move || {
-        assert!(server::run_server(tx).is_ok());
+        server::run_server(tx).expect("server test failed");
     });
 
     if let Ok(port) = rx.recv() {
-        client::run_client(port).unwrap();
+        client::run_client(port).expect("client test failed");
     }
 }
