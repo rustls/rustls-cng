@@ -5,14 +5,14 @@ use std::{
 };
 
 use rustls::{
-    RootCertStore, ServerConfig, ServerConnection, VecInput,
+    RootCertStore, ServerConfig, ServerConnection,
     server::{ClientHello, WebPkiClientVerifier},
 };
 use rustls_cng::{
     config::{CngCredentials, WithCngServerCredentials},
     store::{CertStore, CertStoreType},
 };
-use rustls_util::Stream;
+use rustls_util::StreamOwned;
 
 const PORT: u16 = 8000;
 
@@ -45,25 +45,20 @@ fn resolve(store: &CertStore, client_hello: &ClientHello) -> Result<CngCredentia
     Ok(CngCredentials { key, chain: certs })
 }
 
-fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
+fn handle_connection(stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
     println!("Accepted incoming connection from {}", stream.peer_addr()?);
-    let mut connection = ServerConnection::new(config)?;
-    let mut input = VecInput::default();
-    let mut tls_stream = Stream::new(&mut input, &mut connection, &mut stream);
-
-    let mut input = VecInput::default();
-    rustls_util::complete_io(tls_stream.sock, &mut input, tls_stream.conn)?;
-
-    println!("Protocol version: {:?}", tls_stream.conn.protocol_version());
-    println!("Cipher suite: {:?}", tls_stream.conn.negotiated_cipher_suite());
-    println!("SNI host name: {:?}", tls_stream.conn.server_name());
-    println!("Peer identity: {:?}", tls_stream.conn.peer_identity());
+    let connection = ServerConnection::new(config)?;
+    let mut tls_stream = StreamOwned::new(connection, stream, Vec::new());
 
     let mut buf = [0u8; 4];
     tls_stream.read_exact(&mut buf)?;
+
     println!("{}", String::from_utf8_lossy(&buf));
+
     tls_stream.sock.shutdown(Shutdown::Read)?;
+
     tls_stream.write_all(b"pong")?;
+
     tls_stream.sock.shutdown(Shutdown::Write)?;
 
     Ok(())

@@ -10,13 +10,13 @@ mod client {
         sync::Arc,
     };
 
-    use rustls::{ClientConfig, RootCertStore, VecInput, pki_types::CertificateDer};
+    use rustls::{ClientConfig, RootCertStore, pki_types::CertificateDer};
     use rustls_cng::{
         config::{CngCredentials, WithCngClientCredentials},
         key::NCryptKey,
         store::{CertStore, Pkcs12Flags},
     };
-    use rustls_util::Stream;
+    use rustls_util::StreamOwned;
 
     fn get_chain(
         store: &CertStore,
@@ -49,11 +49,11 @@ mod client {
                 .with_cng_client_credentials(credentials)?,
         );
 
-        let mut connection = client_config.connect("rustls-server".try_into()?).build()?;
-        let mut client = TcpStream::connect(format!("localhost:{port}"))?;
-        let mut input = VecInput::default();
+        let mut tls = Vec::new();
+        let connection = client_config.connect("rustls-server".try_into()?).build(&mut tls)?;
+        let client = TcpStream::connect(format!("localhost:{port}"))?;
 
-        let mut tls_stream = Stream::new(&mut input, &mut connection, &mut client);
+        let mut tls_stream = StreamOwned::new(connection, client, Vec::new());
         tls_stream.write_all(b"ping")?;
         tls_stream.sock.shutdown(Shutdown::Write)?;
 
@@ -75,14 +75,14 @@ mod server {
     };
 
     use rustls::{
-        RootCertStore, ServerConfig, ServerConnection, VecInput,
+        RootCertStore, ServerConfig, ServerConnection,
         server::{ClientHello, WebPkiClientVerifier},
     };
     use rustls_cng::{
         config::{CngCredentials, WithCngServerCredentials},
         store::{CertStore, Pkcs12Flags},
     };
-    use rustls_util::Stream;
+    use rustls_util::StreamOwned;
 
     fn resolve(store: &CertStore, client_hello: &ClientHello) -> Result<CngCredentials, rustls::Error> {
         let name = client_hello
@@ -106,16 +106,19 @@ mod server {
         Ok(CngCredentials { key, chain: certs })
     }
 
-    fn handle_connection(mut stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
-        let mut connection = ServerConnection::new(config)?;
-        let mut input = VecInput::default();
-        let mut tls_stream = Stream::new(&mut input, &mut connection, &mut stream);
+    fn handle_connection(stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
+        let connection = ServerConnection::new(config)?;
+        let mut tls_stream = StreamOwned::new(connection, stream, Vec::new());
 
         let mut buf = [0u8; 4];
         tls_stream.read_exact(&mut buf)?;
+
         assert_eq!(&buf, b"ping");
+
         tls_stream.sock.shutdown(Shutdown::Read)?;
+
         tls_stream.write_all(b"pong")?;
+
         tls_stream.sock.shutdown(Shutdown::Write)?;
 
         Ok(())

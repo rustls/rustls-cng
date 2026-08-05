@@ -4,12 +4,12 @@ use std::{
     sync::Arc,
 };
 
-use rustls::{ClientConfig, RootCertStore, VecInput, pki_types::ServerName};
+use rustls::{ClientConfig, RootCertStore, pki_types::ServerName};
 use rustls_cng::{
     config::{CngCredentials, WithCngClientCredentials},
     store::{CertStore, CertStoreType},
 };
-use rustls_util::Stream;
+use rustls_util::StreamOwned;
 
 const PORT: u16 = 8000;
 
@@ -46,11 +46,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_name = ServerName::try_from(args[1].as_str())?.to_owned();
 
-    let mut connection = client_config.connect(server_name).build()?;
-    let mut client = TcpStream::connect(format!("127.0.0.1:{}", PORT))?;
-    let mut input = VecInput::default();
+    let mut tls = Vec::new();
+    let connection = client_config.connect(server_name).build(&mut tls)?;
+    let client = TcpStream::connect(format!("127.0.0.1:{}", PORT))?;
 
-    let mut tls_stream = Stream::new(&mut input, &mut connection, &mut client);
+    let mut tls_stream = StreamOwned::new(connection, client, Vec::new());
     tls_stream.write_all(b"ping")?;
     tls_stream.sock.shutdown(Shutdown::Write)?;
 
