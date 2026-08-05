@@ -10,7 +10,7 @@ use windows_sys::{
 use crate::{error::CngError, Result};
 
 /// Algorithm group of the CNG private key
-#[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd)]
 pub enum AlgorithmGroup {
     Rsa,
     Ecdsa,
