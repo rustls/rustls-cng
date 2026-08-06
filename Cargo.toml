@@ -28,9 +28,9 @@ rustls-util = { git = "https://github.com/rustls/rustls.git" }
 rustls-native-certs = "0.8"
 
 [features]
-default = ["rustls-log", "rustls-webpki"]
+default = ["rustls-tracing", "rustls-webpki"]
 time = ["dep:time"]
 rustls-webpki= ["rustls/webpki"]
-rustls-log = ["rustls/log"]
+rustls-tracing = ["rustls/tracing"]
 rustls-brotli = ["rustls/brotli"]
 rustls-zlib = ["rustls/zlib"]
