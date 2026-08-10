@@ -46,11 +46,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_name = ServerName::try_from(args[1].as_str())?.to_owned();
 
-    let mut tls = Vec::new();
-    let connection = client_config.connect(server_name).build(&mut tls)?;
+    let mut client_output = Vec::new();
+    let connection = client_config.connect(server_name).build(&mut client_output)?;
     let client = TcpStream::connect(format!("127.0.0.1:{}", PORT))?;
 
-    let mut tls_stream = StreamOwned::new(connection, client, Vec::new());
+    let mut tls_stream = StreamOwned::new(connection, client, client_output);
+
     tls_stream.write_all(b"ping")?;
     tls_stream.sock.shutdown(Shutdown::Write)?;
 

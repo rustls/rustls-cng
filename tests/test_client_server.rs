@@ -49,11 +49,16 @@ mod client {
                 .with_cng_client_credentials(credentials)?,
         );
 
-        let mut tls = Vec::new();
-        let connection = client_config.connect("rustls-server".try_into()?).build(&mut tls)?;
+        let mut client_output = Vec::new();
+
+        let connection = client_config
+            .connect("rustls-server".try_into()?)
+            .build(&mut client_output)?;
+
         let client = TcpStream::connect(format!("localhost:{port}"))?;
 
-        let mut tls_stream = StreamOwned::new(connection, client, Vec::new());
+        let mut tls_stream = StreamOwned::new(connection, client, client_output);
+
         tls_stream.write_all(b"ping")?;
         tls_stream.sock.shutdown(Shutdown::Write)?;
 
