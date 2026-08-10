@@ -6,7 +6,7 @@ use std::{
 
 use rustls::{ClientConfig, RootCertStore, pki_types::ServerName};
 use rustls_cng::{
-    config::{CngCredentials, WithCngClientCredentials},
+    config::{CngCredentials, WithClientCngCredentials},
     store::{CertStore, CertStoreType},
 };
 use rustls_util::StreamOwned;
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client_config = Arc::new(if let Some(client_cert) = args.get(2) {
         let credentials = get_credentials(client_cert)?;
-        builder.with_cng_client_credentials(credentials)?
+        builder.with_client_cng_credentials(credentials)?
     } else {
         builder.with_no_client_auth()?
     });

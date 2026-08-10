@@ -12,7 +12,7 @@ mod client {
 
     use rustls::{ClientConfig, RootCertStore, pki_types::CertificateDer};
     use rustls_cng::{
-        config::{CngCredentials, WithCngClientCredentials},
+        config::{CngCredentials, WithClientCngCredentials},
         key::NCryptKey,
         store::{CertStore, Pkcs12Flags},
     };
@@ -46,7 +46,7 @@ mod client {
         let client_config = Arc::new(
             ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
                 .with_root_certificates(root_store)
-                .with_cng_client_credentials(credentials)?,
+                .with_client_cng_credentials(credentials)?,
         );
 
         let mut client_output = Vec::new();
@@ -84,7 +84,7 @@ mod server {
         server::{ClientHello, WebPkiClientVerifier},
     };
     use rustls_cng::{
-        config::{CngCredentials, WithCngServerCredentials},
+        config::{CngCredentials, WithServerCngCredentials},
         store::{CertStore, Pkcs12Flags},
     };
     use rustls_util::StreamOwned;
@@ -143,7 +143,7 @@ mod server {
 
         let server_config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
             .with_client_cert_verifier(Arc::new(verifier))
-            .with_cng_server_credentials(move |hello| resolve(&store, hello))?;
+            .with_server_cng_credentials(move |hello| resolve(&store, hello))?;
 
         let server = TcpListener::bind("127.0.0.1:0")?;
 

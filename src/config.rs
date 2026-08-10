@@ -19,13 +19,13 @@ pub struct CngCredentials {
 }
 
 /// Extension trait for `ConfigBuilder` to add CNG client credentials.
-pub trait WithCngClientCredentials {
-    /// Add CNG client credentials.
-    fn with_cng_client_credentials(self, credentials: CngCredentials) -> Result<ClientConfig, Error>;
+pub trait WithClientCngCredentials {
+    /// Add client CNG credentials.
+    fn with_client_cng_credentials(self, credentials: CngCredentials) -> Result<ClientConfig, Error>;
 }
 
-impl WithCngClientCredentials for ConfigBuilder<ClientConfig, WantsClientCert> {
-    fn with_cng_client_credentials(self, credentials: CngCredentials) -> Result<ClientConfig, Error> {
+impl WithClientCngCredentials for ConfigBuilder<ClientConfig, WantsClientCert> {
+    fn with_client_cng_credentials(self, credentials: CngCredentials) -> Result<ClientConfig, Error> {
         let key = CngSigningKey::new(credentials.key).map_err(|_| Error::NoSuitableCertificate)?;
         let identity = Identity::from_cert_chain(credentials.chain)?;
         self.with_client_credential_resolver(Arc::new(ClientCertResolver {
@@ -55,15 +55,15 @@ impl ClientCredentialResolver for ClientCertResolver {
 }
 
 /// Extension trait for ConfigBuilder to add CNG server credentials.
-pub trait WithCngServerCredentials {
-    /// Register CNG server credentials resolver function.
-    fn with_cng_server_credentials<F>(self, resolver: F) -> Result<ServerConfig, Error>
+pub trait WithServerCngCredentials {
+    /// Register server CNG credentials resolver function.
+    fn with_server_cng_credentials<F>(self, resolver: F) -> Result<ServerConfig, Error>
     where
         F: Fn(&ClientHello) -> Result<CngCredentials, Error> + Send + Sync + 'static;
 }
 
-impl WithCngServerCredentials for ConfigBuilder<ServerConfig, WantsServerCert> {
-    fn with_cng_server_credentials<F>(self, resolver: F) -> Result<ServerConfig, Error>
+impl WithServerCngCredentials for ConfigBuilder<ServerConfig, WantsServerCert> {
+    fn with_server_cng_credentials<F>(self, resolver: F) -> Result<ServerConfig, Error>
     where
         F: Fn(&ClientHello) -> Result<CngCredentials, Error> + Send + Sync + 'static,
     {

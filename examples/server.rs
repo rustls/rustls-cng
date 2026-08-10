@@ -9,7 +9,7 @@ use rustls::{
     server::{ClientHello, WebPkiClientVerifier},
 };
 use rustls_cng::{
-    config::{CngCredentials, WithCngServerCredentials},
+    config::{CngCredentials, WithServerCngCredentials},
     store::{CertStore, CertStoreType},
 };
 use rustls_util::StreamOwned;
@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
         .with_client_cert_verifier(Arc::new(verifier))
-        .with_cng_server_credentials(move |client_hello| resolve(&store, client_hello))?;
+        .with_server_cng_credentials(move |client_hello| resolve(&store, client_hello))?;
 
     let server = TcpListener::bind(format!("127.0.0.1:{PORT}"))?;
 
