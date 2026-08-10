@@ -19,9 +19,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.17.3"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00bdb5da18dac48ca2cc7cd4a98e533e8635a58e2361d13a1a4ee3888e0d72f1"
+checksum = "ce2b2dcc879c3bae0d371e77c99f2238400ef24ec001394befa67b6e543add9e"
 dependencies = [
  "aws-lc-sys",
  "zeroize",
@@ -29,9 +29,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.43.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43103168cc76fe62678a375e722fc9cb3a0146159ac5828bc4f0dfd755c2224c"
+checksum = "f09fae7be8bb3174e05c6afdb34199e6dc0c7c04ba9fa237b1967adfbde27483"
 dependencies = [
  "cc",
  "cmake",
@@ -69,9 +69,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.4.0"
+version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5add81bb678e6cb321aff7fa0dc7689ad82b112dbc032cea19f91d6b8e3582b9"
+checksum = "5d262e149917187838d5b42777c8253bcb64500067342904e7d429499a6f277e"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -124,9 +124,9 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
+checksum = "26b73573e6edcd2af0cdf47bd6cb58f0b3839491263c314eaad1ccf24430e1de"
 
 [[package]]
 name = "fs_extra"
@@ -206,7 +206,7 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 [[package]]
 name = "rustls"
 version = "0.24.0-dev.1"
-source = "git+https://github.com/rustls/rustls.git#ca00eb87a8c6a1f92398a0420cae71c21671ae32"
+source = "git+https://github.com/rustls/rustls.git#2cd5cc104045879b337d4f0113c1cf797ce5add7"
 dependencies = [
  "brotli",
  "brotli-decompressor",
@@ -222,7 +222,7 @@ dependencies = [
 [[package]]
 name = "rustls-aws-lc-rs"
 version = "0.1.0-dev.1"
-source = "git+https://github.com/rustls/rustls.git#ca00eb87a8c6a1f92398a0420cae71c21671ae32"
+source = "git+https://github.com/rustls/rustls.git#2cd5cc104045879b337d4f0113c1cf797ce5add7"
 dependencies = [
  "aws-lc-rs",
  "rustls",
@@ -268,7 +268,7 @@ dependencies = [
 [[package]]
 name = "rustls-util"
 version = "0.1.0-dev.1"
-source = "git+https://github.com/rustls/rustls.git#ca00eb87a8c6a1f92398a0420cae71c21671ae32"
+source = "git+https://github.com/rustls/rustls.git#2cd5cc104045879b337d4f0113c1cf797ce5add7"
 dependencies = [
  "rustls",
  "tracing",
