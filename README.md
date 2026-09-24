@@ -7,11 +7,10 @@
 [![docs.rs](https://docs.rs/rustls-cng/badge.svg)](https://docs.rs/rustls-cng)
 
 This crate allows you to use the Windows CNG private keys together with [rustls](https://docs.rs/rustls/latest/rustls)
- for both the client and server sides of the TLS channel.
+for both the client and server sides of the TLS channel.
 
-Rationale: In many situations, it is required to use non-exportable private certificate chains
- from the Windows certificate store instead of the external PKCS8 file.
- `rustls-cng` can use such chains in the `rustls` context.
+Rationale: In many situations, it is required to use non-exportable private certificate chains from the Windows
+certificate store instead of the external PKCS8 file. `rustls-cng` can use such chains in the `rustls` context.
 
 Supported key/certificate types: **RSA**, **ECDSA/ECDH**. Supported elliptic curves: secp256r1 (prime256v1), secp384r1, secp521r1.
 
@@ -19,11 +18,7 @@ Supported key/certificate types: **RSA**, **ECDSA/ECDH**. Supported elliptic cur
 
 ## Usage
 
-The main struct to use in `rustls-cng` is `CngSigningKey`, which can be constructed
- from the low-level `NCryptKey` handle. The instance of `CngSigningKey` can then be
- used in `rustls` in the custom `ServerCredentialResolver` or `ClientCredentialResolver` implementation.
-
-See the `examples` directory for usage examples.
+Please see the `examples` directory for client and server usage examples.
 
 ## License
 
