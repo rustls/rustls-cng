@@ -69,9 +69,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.5.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f360145194ee8e21db5ee7f3fcd4fe52210864c75c985dae33218202c8bbe040"
+checksum = "50a649af8a827553c29fb0cb4bd4a6f1a0dd695bd3232b9bc98bd9c8a3ffbb8b"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -157,9 +157,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.189"
+version = "0.2.190"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
+checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
 
 [[package]]
 name = "num-conv"
@@ -187,9 +187,9 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "powerfmt"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
+checksum = "4a6394b9e965e73d0a289ee54f589087e2c676aedf60885baf52c76b771e4958"
 
 [[package]]
 name = "r-efi"
@@ -200,7 +200,7 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 [[package]]
 name = "rustls"
 version = "0.24.0-dev.1"
-source = "git+https://github.com/rustls/rustls.git#99f2358cae2954837dbb866faf6727de75489ab9"
+source = "git+https://github.com/rustls/rustls.git#5535e9d42ac73b6e4ea6114297987583fc75dbab"
 dependencies = [
  "brotli",
  "brotli-decompressor",
@@ -215,7 +215,7 @@ dependencies = [
 [[package]]
 name = "rustls-aws-lc-rs"
 version = "0.1.0-dev.1"
-source = "git+https://github.com/rustls/rustls.git#99f2358cae2954837dbb866faf6727de75489ab9"
+source = "git+https://github.com/rustls/rustls.git#5535e9d42ac73b6e4ea6114297987583fc75dbab"
 dependencies = [
  "aws-lc-rs",
  "rustls",
@@ -261,7 +261,7 @@ dependencies = [
 [[package]]
 name = "rustls-util"
 version = "0.1.0-dev.1"
-source = "git+https://github.com/rustls/rustls.git#99f2358cae2954837dbb866faf6727de75489ab9"
+source = "git+https://github.com/rustls/rustls.git#5535e9d42ac73b6e4ea6114297987583fc75dbab"
 dependencies = [
  "rustls",
  "tracing",
@@ -378,9 +378,9 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.9.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
+checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
 
 [[package]]
 name = "zlib-rs"

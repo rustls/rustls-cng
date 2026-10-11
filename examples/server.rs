@@ -5,7 +5,7 @@ use std::{
 };
 
 use rustls::{
-    RootCertStore, ServerConfig, ServerConnection,
+    Connection, RootCertStore, ServerConfig,
     server::{ClientHello, WebPkiClientVerifier},
 };
 use rustls_cng::{
@@ -47,7 +47,7 @@ fn resolve(store: &CertStore, client_hello: &ClientHello) -> Result<CngCredentia
 
 fn handle_connection(stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
     println!("Accepted incoming connection from {}", stream.peer_addr()?);
-    let connection = ServerConnection::new(config)?;
+    let connection = Connection::new(config)?;
     let mut tls_stream = StreamOwned::new(connection, stream, Vec::new());
 
     let mut buf = [0u8; 4];

@@ -80,7 +80,7 @@ mod server {
     };
 
     use rustls::{
-        RootCertStore, ServerConfig, ServerConnection,
+        Connection, RootCertStore, ServerConfig,
         server::{ClientHello, WebPkiClientVerifier},
     };
     use rustls_cng::{
@@ -112,7 +112,7 @@ mod server {
     }
 
     fn handle_connection(stream: TcpStream, config: Arc<ServerConfig>) -> Result<(), Box<dyn std::error::Error>> {
-        let connection = ServerConnection::new(config)?;
+        let connection = Connection::new(config)?;
         let mut tls_stream = StreamOwned::new(connection, stream, Vec::new());
 
         let mut buf = [0u8; 4];
