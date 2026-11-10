@@ -85,6 +85,7 @@ pub struct CngSigningKey {
     key: NCryptKey,
     algorithm_group: AlgorithmGroup,
     bits: u32,
+    public_key: Option<Vec<u8>>,
 }
 
 impl CngSigningKey {
@@ -92,10 +93,12 @@ impl CngSigningKey {
     pub fn new(key: NCryptKey) -> crate::Result<Self> {
         let group = key.algorithm_group()?;
         let bits = key.bits()?;
+        let public_key = key.public_key_info().ok();
         Ok(Self {
             key,
             algorithm_group: group,
             bits,
+            public_key,
         })
     }
 
@@ -221,7 +224,7 @@ impl SigningKey for CngSigningKey {
     }
 
     fn public_key(&self) -> Option<SubjectPublicKeyInfoDer<'_>> {
-        None
+        self.public_key.as_deref().map(SubjectPublicKeyInfoDer::from)
     }
 }
 

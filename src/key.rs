@@ -152,6 +152,70 @@ impl NCryptKey {
         self.get_string_property(NCRYPT_ALGORITHM_PROPERTY)
     }
 
+    /// Return the DER-encoded SubjectPublicKeyInfo structure of this key
+    pub fn public_key_info(&self) -> Result<Vec<u8>> {
+        unsafe {
+            // Export the public key as a CERT_PUBLIC_KEY_INFO structure.
+            let mut info_len = 0u32;
+            if CryptExportPublicKeyInfo(
+                self.inner(),
+                CERT_NCRYPT_KEY_SPEC,
+                X509_ASN_ENCODING,
+                ptr::null_mut(),
+                &mut info_len,
+            ) == 0
+            {
+                return Err(CngError::from_win32_error());
+            }
+
+            // The structure contains pointers, so the buffer must be pointer-aligned.
+            let mut info_buf = vec![0usize; (info_len as usize).div_ceil(size_of::<usize>())];
+            if CryptExportPublicKeyInfo(
+                self.inner(),
+                CERT_NCRYPT_KEY_SPEC,
+                X509_ASN_ENCODING,
+                info_buf.as_mut_ptr().cast(),
+                &mut info_len,
+            ) == 0
+            {
+                return Err(CngError::from_win32_error());
+            }
+
+            // Encode CERT_PUBLIC_KEY_INFO into the DER SubjectPublicKeyInfo.
+            let info_ptr = info_buf.as_ptr().cast();
+            let mut der_len = 0u32;
+            if CryptEncodeObjectEx(
+                X509_ASN_ENCODING,
+                X509_PUBLIC_KEY_INFO,
+                info_ptr,
+                0,
+                ptr::null(),
+                ptr::null_mut(),
+                &mut der_len,
+            ) == 0
+            {
+                return Err(CngError::from_win32_error());
+            }
+
+            let mut der = vec![0u8; der_len as usize];
+            if CryptEncodeObjectEx(
+                X509_ASN_ENCODING,
+                X509_PUBLIC_KEY_INFO,
+                info_ptr,
+                0,
+                ptr::null(),
+                der.as_mut_ptr().cast(),
+                &mut der_len,
+            ) == 0
+            {
+                return Err(CngError::from_win32_error());
+            }
+
+            der.truncate(der_len as usize);
+            Ok(der)
+        }
+    }
+
     /// Set a pin code for hardware tokens
     pub fn set_pin(&self, pin: &str) -> Result<()> {
         let pin_val = utf16z!(pin);

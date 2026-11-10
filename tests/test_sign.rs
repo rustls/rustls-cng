@@ -39,3 +39,23 @@ fn test_sign() {
     let signature = signer.sign(MESSAGE.as_bytes()).unwrap();
     assert!(signature.len() >= 102);
 }
+
+#[test]
+fn test_public_key() {
+    let store = CertStore::from_pkcs12(PFX, PASSWORD, Pkcs12Flags::default()).expect("Cannot open cert store");
+
+    let context = store
+        .find_by_subject_str("rustls")
+        .expect("No signer certificate")
+        .into_iter()
+        .next()
+        .unwrap();
+
+    let key = context.acquire_key(true).unwrap();
+    let signing_key = CngSigningKey::new(key).unwrap();
+    let spki = signing_key.public_key().expect("No public key");
+
+    // The exported SubjectPublicKeyInfo must be embedded verbatim in the certificate.
+    let cert = context.as_der();
+    assert!(cert.windows(spki.len()).any(|w| w == spki.as_ref()));
+}
