@@ -41,21 +41,21 @@
 //!     store::{CertStore, CertStoreType},
 //! };
 //!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let store = CertStore::open(CertStoreType::CurrentUser, "my")?;
-//! let contexts = store.find_by_subject_str("client-cert-name")?;
-//! let context = contexts.first().ok_or("client certificate not found")?;
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let store = CertStore::open(CertStoreType::CurrentUser, "my")?;
+//!     let contexts = store.find_by_subject_str("client-cert-name")?;
+//!     let context = contexts.first().ok_or("client certificate not found")?;
 //!
-//! let credentials = CngCredentials {
-//!     key: context.acquire_key(false)?,
-//!     chain: context.as_chain_der()?.into_iter().map(Into::into).collect(),
-//! };
+//!     let credentials = CngCredentials {
+//!         key: context.acquire_key(false)?,
+//!         chain: context.as_chain_der()?.into_iter().map(Into::into).collect(),
+//!     };
 //!
-//! let config = ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
-//!     .with_root_certificates(RootCertStore::empty())
-//!     .with_client_cng_credentials(credentials)?;
-//! # Ok(())
-//! # }
+//!     let config = ClientConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
+//!         .with_root_certificates(RootCertStore::empty())
+//!         .with_client_cng_credentials(credentials)?;
+//!     Ok(())
+//! }
 //! ```
 //!
 //! # Server example
@@ -88,14 +88,14 @@
 //!         .ok_or(rustls::Error::NoSuitableCertificate)
 //! }
 //!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let store = CertStore::open(CertStoreType::LocalMachine, "my")?;
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let store = CertStore::open(CertStoreType::LocalMachine, "my")?;
 //!
-//! let config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
-//!     .with_no_client_auth()
-//!     .with_server_cng_credentials(move |client_hello| resolve(&store, client_hello))?;
-//! # Ok(())
-//! # }
+//!     let config = ServerConfig::builder(Arc::new(rustls_aws_lc_rs::DEFAULT_PROVIDER))
+//!         .with_no_client_auth()
+//!         .with_server_cng_credentials(move |client_hello| resolve(&store, client_hello))?;
+//!     Ok(())
+//! }
 //! ```
 //!
 //! Complete client and server programs can be found in the
